@@ -9,7 +9,12 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'https://japclass-attendance-1.onrender.com' // deployed frontend
+  ],
   credentials: true
 }));
 app.use(express.json());
