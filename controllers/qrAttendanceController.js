@@ -274,8 +274,14 @@ const createSession = async (req, res) => {
 
     await session.save();
 
-    // Generate QR code
-    const qrUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/mark-attendance?session_id=${session.sessionId}`;
+    // Generate QR code pointing to the deployed frontend.
+    // Priority: explicit env FRONTEND_URL > request origin (from deployed frontend) > localhost
+    const frontendBaseUrl =
+      process.env.FRONTEND_URL ||
+      (req && req.headers && req.headers.origin) ||
+      'http://localhost:3000';
+
+    const qrUrl = `${frontendBaseUrl.replace(/\/$/, '')}/mark-attendance?session_id=${session.sessionId}`;
     const qrCode = await QRCode.toDataURL(qrUrl);
 
     res.json({
