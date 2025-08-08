@@ -8,15 +8,31 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'https://japclass-attendance-1.onrender.com' // deployed frontend
-  ],
-  credentials: true
-}));
+const allowedOrigins = new Set([
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'https://japclass-attendance-1.onrender.com',
+]);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow non-browser requests with no origin (like health checks)
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS: Origin not allowed: ${origin}`));
+    },
+    credentials: true,
+  })
+);
+
+// Handle preflight requests for all routes
+app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
