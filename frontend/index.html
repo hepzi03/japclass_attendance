@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Attendance System - Teacher Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Add flatpickr CSS -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .qr-code {
+            max-width: 300px;
+            margin: 20px auto;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            transition: opacity 0.3s ease, filter 0.3s ease;
+        }
+        
+        .qr-code.disabled {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+        
+
+
+        .session-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .session-info h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-item strong {
+            color: #667eea;
+        }
+
+        .attendance-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .attendance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s ease;
+        }
+
+        .attendance-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .student-info {
+            flex: 1;
+        }
+
+        .student-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .student-reg {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .attendance-time {
+            color: #28a745;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab:hover {
+            background: #f8f9fa;
+        }
+
+        .tab.active:hover {
+            background: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .attendance-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-qrcode"></i> QR Attendance System</h1>
+            <p>Teacher Dashboard - Create and manage attendance sessions</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('create')">
+                <i class="fas fa-plus"></i> Create Session
+            </div>
+            <div class="tab" onclick="showTab('sessions')">
+                <i class="fas fa-list"></i> View Sessions
+            </div>
+        </div>
+
+        <!-- Create Session Tab -->
+        <div id="create" class="tab-content active">
+            <div class="card">
+                <h2><i class="fas fa-calendar-plus"></i> Create New Attendance Session</h2>
+                <form id="sessionForm">
+                    <div class="form-group">
+                        <label for="batchSelect">Select Batch:</label>
+                        <select id="batchSelect" class="form-control" required>
+                            <option value="">Choose a batch...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sessionDate">Session Date:</label>
+                        <input type="date" id="sessionDate" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeSlot">Time Slot:</label>
+                        <select id="timeSlot" class="form-control" required>
+                            <option value="">Choose time slot...</option>
+                            <option value="9:00-10:00">9:00-10:00</option>
+                            <option value="10:00-11:00">10:00-11:00</option>
+                            <option value="11:00-12:00">11:00-12:00</option>
+                            <option value="12:00-13:00">12:00-13:00</option>
+                            <option value="14:00-15:00">14:00-15:00</option>
+                            <option value="15:00-16:00">15:00-16:00</option>
+                            <option value="16:00-17:00">16:00-17:00</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notes (Optional):</label>
+                        <textarea id="notes" class="form-control" rows="3" placeholder="Add any notes for this session..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn" id="createSessionBtn">
+                        <i class="fas fa-qrcode"></i> Create Session & Generate QR
+                    </button>
+                    <div id="locationStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                        <i class="fas fa-spinner fa-spin"></i> Checking location access...
+                    </div>
+                    <div id="locationOverride" style="margin-top: 10px; display: none;">
+                        <button type="button" class="btn btn-secondary" onclick="useDefaultLocation()" style="font-size: 0.8rem;">
+                            <i class="fas fa-map-marker-alt"></i> Use Default Location
+                        </button>
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Use this if GPS is not working
+                        </small>
+                    </div>
+                </form>
+            </div>
+
+            <div id="sessionResult" style="display: none;">
+                <div class="card">
+                    <h2><i class="fas fa-check-circle"></i> Session Created Successfully!</h2>
+                    <div class="session-info">
+                        <h3>Session Details</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Session ID:</strong><br>
+                                <span id="sessionId"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Batch:</strong><br>
+                                <span id="batchName"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Date:</strong><br>
+                                <span id="sessionDate"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Time:</strong><br>
+                                <span id="sessionTime"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Location:</strong><br>
+                                <span id="sessionLocation">Capturing location...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="qr-container">
+                        <h3>QR Code for Students</h3>
+                        <img id="qrCode" class="qr-code" alt="QR Code">
+                        <p><strong>Students can scan this QR code to mark their attendance</strong></p>
+                        <div class="session-actions" style="margin-top: 20px;">
+                            <button id="endSessionBtn" class="btn btn-warning" onclick="endCurrentSession()">
+                                <i class="fas fa-stop-circle"></i> End Session
+                            </button>
+                            <p class="session-status" id="sessionStatus" style="margin-top: 10px; color: #28a745;">
+                                <i class="fas fa-check-circle"></i> Session is active
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Sessions Tab -->
+        <div id="sessions" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-list"></i> Recent Sessions</h2>
+                <div id="sessionsList" class="loading">
+                    Loading sessions...
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Load data if needed
+            if (tabName === 'sessions') {
+                loadSessions();
+            }
+        }
+
+        // Load batches
+        async function loadBatches() {
+            try {
+                console.log('Loading batches from:', `${API_BASE}/batch`);
+                const response = await fetch(`${API_BASE}/batch`);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Batches data:', data);
+                
+                const batchSelect = document.getElementById('batchSelect');
+                batchSelect.innerHTML = '<option value="">Choose a batch...</option>';
+                
+                if (data.batches && data.batches.length > 0) {
+                    data.batches.forEach(batch => {
+                        const option = document.createElement('option');
+                        option.value = batch._id;
+                        option.textContent = `${batch.name} - ${batch.level}`;
+                        batchSelect.appendChild(option);
+                    });
+                    console.log(`Loaded ${data.batches.length} batches`);
+                } else {
+                    console.log('No batches found in response');
+                }
+            } catch (error) {
+                console.error('Error loading batches:', error);
+                alert('Error loading batches: ' + error.message);
+            }
+        }
+
+        // Create session
+        document.getElementById('sessionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get the date value (HTML5 date input already returns YYYY-MM-DD format)
+            const dateInput = document.getElementById('sessionDate').value;
+            
+            let formattedDate = dateInput;
+            if (dateInput) {
+                // HTML5 date input already returns YYYY-MM-DD format, so no conversion needed
+                formattedDate = dateInput;
+            }
+
+            // Show loading state
+            const submitBtn = document.getElementById('createSessionBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Location...';
+
+            // Get teacher's current location with automatic permission handling
+            let teacherLocation = null;
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            while (attempts < maxAttempts && !teacherLocation) {
+                attempts++;
+                try {
+                    console.log(`Location attempt ${attempts}/${maxAttempts}...`);
+                    teacherLocation = await getCurrentLocation();
+                    console.log('Teacher location obtained:', teacherLocation);
+                    break;
+                } catch (error) {
+                    console.error(`Location error (attempt ${attempts}):`, error);
+                    
+                    if (attempts >= maxAttempts) {
+                        // Check if default location is available
+                        if (window.defaultLocation) {
+                            console.log('Using default location as fallback');
+                            teacherLocation = window.defaultLocation;
+                            break;
+                        } else {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                            
+                            // Show a more helpful error message with option to use default
+                            const useDefault = confirm('Unable to get GPS location. Would you like to use a default location instead?');
+                            if (useDefault) {
+                                useDefaultLocation();
+                                teacherLocation = window.defaultLocation;
+                                break;
+                            } else {
+                                alert('Location access is required. Please:\n\n1. Check your GPS/network connection\n2. Or click "Use Default Location" button\n3. Then try again.');
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // Wait a bit before retrying
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+
+            // Update button text
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Session...';
+            
+            const formData = {
+                batchId: document.getElementById('batchSelect').value,
+                date: formattedDate,
+                timeSlot: document.getElementById('timeSlot').value,
+                notes: document.getElementById('notes').value,
+                location: teacherLocation
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/qr/session/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Display session result
+                    document.getElementById('sessionId').textContent = data.session.sessionId;
+                    document.getElementById('batchName').textContent = data.session.batchName;
+                    
+                    let dateStr = 'N/A';
+                    if (data.session.date) {
+                        try {
+                            const d = new Date(data.session.date);
+                            if (!isNaN(d)) {
+                                // Format date in a user-friendly way
+                                const options = { 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                };
+                                dateStr = d.toLocaleDateString('en-US', options);
+                            } else {
+                                dateStr = data.session.date;
+                            }
+                        } catch (error) {
+                            console.error('Error parsing date:', error);
+                            dateStr = data.session.date || 'N/A';
+                        }
+                    }
+                    document.getElementById('sessionDate').textContent = dateStr;
+                    
+                    // Display location information
+                    if (teacherLocation) {
+                        const locationText = `${teacherLocation.latitude.toFixed(6)}, ${teacherLocation.longitude.toFixed(6)}`;
+                        document.getElementById('sessionLocation').textContent = locationText;
+                    } else {
+                        document.getElementById('sessionLocation').textContent = 'Location captured';
+                    }
+                    
+                    // Store current session ID for ending session
+                    window.currentSessionId = data.session.sessionId;
+                    document.getElementById('sessionTime').textContent = data.session.timeSlot;
+                    document.getElementById('qrCode').src = data.session.qrCode;
+                    
+                    document.getElementById('sessionResult').style.display = 'block';
+                    document.getElementById('sessionForm').reset();
+                    
+                    // Reset button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    
+                    // Scroll to result
+                    document.getElementById('sessionResult').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    alert('Error creating session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error creating session:', error);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                alert('Error creating session. Please try again.');
+            }
+        });
+
+        // Load sessions
+        async function loadSessions() {
+            try {
+                const response = await fetch(`${API_BASE}/qr/sessions`);
+                const data = await response.json();
+
+                const sessionsList = document.getElementById('sessionsList');
+                
+                if (data.success && data.sessions.length > 0) {
+                    sessionsList.innerHTML = data.sessions.map(session => `
+                        <div class="card">
+                            <div class="session-info">
+                                <h3>${session.batchName}</h3>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <strong>Session ID:</strong><br>
+                                        ${session.sessionId}
+                                    </div>
+                                    <div class="info-item">
+                                        <strong>Date:</strong><br>
+                                        ${new Date(session.date).toLocaleDateString()}
+                                    </div>
+                                    <div class="info-item">
+                                        <strong>Time:</strong><br>
+                                        ${session.timeSlot}
+                                    </div>
+                                    <div class="info-item">
+                                        <strong>Attendance:</strong><br>
+                                        ${session.attendanceCount} students
+                                    </div>
+                                </div>
+                                <div style="margin-top: 15px;">
+                                    <button class="btn" onclick="viewAttendance('${session.sessionId}')">
+                                        <i class="fas fa-eye"></i> View Attendance
+                                    </button>
+                                    <a href="${API_BASE}/qr/session/${session.sessionId}/export/excel" class="btn btn-success">
+                                        <i class="fas fa-file-excel"></i> Export Excel
+                                    </a>
+                                    <a href="${API_BASE}/qr/session/${session.sessionId}/export/pdf" class="btn btn-secondary">
+                                        <i class="fas fa-file-pdf"></i> Export PDF
+                                    </a>
+                                    ${session.isActive ? 
+                                        `<button class="btn btn-warning" onclick="endSession('${session.sessionId}')" title="End Session">
+                                            <i class="fas fa-stop-circle"></i> End Session
+                                        </button>` : 
+                                        `<span class="btn btn-secondary" disabled>
+                                            <i class="fas fa-times-circle"></i> Session Ended
+                                        </span>`
+                                    }
+                                    <button class="btn btn-danger" onclick="deleteSession('${session.sessionId}')" title="Delete Session">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    sessionsList.innerHTML = '<div class="loading">No sessions found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                document.getElementById('sessionsList').innerHTML = '<div class="error">Error loading sessions.</div>';
+            }
+        }
+
+        // View attendance for a session
+        async function viewAttendance(sessionId) {
+            try {
+                const response = await fetch(`${API_BASE}/qr/session/${sessionId}/attendance`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const attendanceHtml = data.attendance.length > 0 ? 
+                        data.attendance.map(record => `
+                            <div class="attendance-item">
+                                <div class="student-info">
+                                    <div class="student-name">${record.name}</div>
+                                    <div class="student-reg">${record.regNumber}</div>
+                                </div>
+                                <div class="attendance-time">
+                                    ${new Date(record.timestamp).toLocaleTimeString()}
+                                </div>
+                            </div>
+                        `).join('') : '<div class="loading">No attendance records found.</div>';
+
+                    // Create modal or show in a new section
+                    alert(`Attendance for session ${sessionId}:\n\n${data.attendance.map(r => `${r.name} (${r.regNumber}) - ${new Date(r.timestamp).toLocaleTimeString()}`).join('\n')}`);
+                } else {
+                    alert('Error loading attendance: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error loading attendance:', error);
+                alert('Error loading attendance.');
+            }
+        }
+
+        // End current session
+        async function endCurrentSession() {
+            if (!window.currentSessionId) {
+                alert('No active session to end.');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to end this session? The QR code will be disabled and students won\'t be able to mark attendance anymore.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/qr/session/${window.currentSessionId}/end`, {
+                    method: 'PUT'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update UI to show session is ended
+                    document.getElementById('endSessionBtn').disabled = true;
+                    document.getElementById('endSessionBtn').innerHTML = '<i class="fas fa-stop-circle"></i> Session Ended';
+                    document.getElementById('endSessionBtn').classList.remove('btn-warning');
+                    document.getElementById('endSessionBtn').classList.add('btn-secondary');
+                    
+                    document.getElementById('sessionStatus').innerHTML = '<i class="fas fa-times-circle"></i> Session ended - QR code disabled';
+                    document.getElementById('sessionStatus').style.color = '#dc3545';
+                    
+                    // Add a visual indicator that QR is disabled
+                    const qrCode = document.getElementById('qrCode');
+                    qrCode.classList.add('disabled');
+                    
+                    alert('Session ended successfully! QR code is now disabled.');
+                } else {
+                    alert('Error ending session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error ending session:', error);
+                alert('Error ending session. Please try again.');
+            }
+        }
+
+        // End session from sessions list
+        async function endSession(sessionId) {
+            if (!confirm('Are you sure you want to end this session? The QR code will be disabled and students won\'t be able to mark attendance anymore.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/qr/session/${sessionId}/end`, {
+                    method: 'PUT'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Session ended successfully! QR code is now disabled.');
+                    // Reload sessions to update the UI
+                    loadSessions();
+                } else {
+                    alert('Error ending session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error ending session:', error);
+                alert('Error ending session. Please try again.');
+            }
+        }
+
+        // Delete a session
+        async function deleteSession(sessionId) {
+            try {
+                // Show confirmation dialog
+                if (!confirm('Are you sure you want to delete this session? This will also delete all attendance records for this session. This action cannot be undone.')) {
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/qr/session/${sessionId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Session deleted successfully!');
+                    // Reload sessions to update the UI
+                    loadSessions();
+                } else {
+                    alert('Error deleting session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error deleting session:', error);
+                alert('Error deleting session. Please try again.');
+            }
+        }
+
+        // Check and request location permission automatically
+        async function ensureLocationPermission() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation is not supported by this browser'));
+                    return;
+                }
+
+                // Check current permission status
+                if (navigator.permissions) {
+                    navigator.permissions.query({ name: 'geolocation' }).then((permissionStatus) => {
+                        console.log('Permission status:', permissionStatus.state);
+                        
+                        if (permissionStatus.state === 'granted') {
+                            resolve();
+                        } else if (permissionStatus.state === 'prompt') {
+                            // Permission not decided yet, will be prompted
+                            resolve();
+                        } else if (permissionStatus.state === 'denied') {
+                            reject(new Error('Location permission denied. Please enable location access in your browser settings.'));
+                        }
+                    });
+                } else {
+                    // Fallback for browsers that don't support permissions API
+                    resolve();
+                }
+            });
+        }
+
+        // Get current location with automatic permission handling
+        function getCurrentLocation() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    // First ensure we have permission
+                    await ensureLocationPermission();
+                    
+                    // Try with high accuracy first
+                    const highAccuracyOptions = {
+                        enableHighAccuracy: true,
+                        timeout: 15000, // 15 seconds
+                        maximumAge: 0 // No cache for high accuracy
+                    };
+
+                    console.log('Starting high accuracy geolocation request...');
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            console.log('High accuracy geolocation success:', position);
+                            resolve({
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude,
+                                accuracy: position.coords.accuracy
+                            });
+                        },
+                        (error) => {
+                            console.log('High accuracy failed, trying low accuracy...');
+                            
+                            // Fallback to low accuracy
+                            const lowAccuracyOptions = {
+                                enableHighAccuracy: false,
+                                timeout: 10000, // 10 seconds
+                                maximumAge: 60000 // Allow 1 minute cache
+                            };
+                            
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    console.log('Low accuracy geolocation success:', position);
+                                    resolve({
+                                        latitude: position.coords.latitude,
+                                        longitude: position.coords.longitude,
+                                        accuracy: position.coords.accuracy
+                                    });
+                                },
+                                (fallbackError) => {
+                                    console.error('Both high and low accuracy failed:', fallbackError);
+                                    switch (fallbackError.code) {
+                                        case fallbackError.PERMISSION_DENIED:
+                                            reject(new Error('Location access denied. Please allow location access to create a session.'));
+                                            break;
+                                        case fallbackError.POSITION_UNAVAILABLE:
+                                            reject(new Error('Location information unavailable. Please check your GPS/network connection and try again.'));
+                                            break;
+                                        case fallbackError.TIMEOUT:
+                                            reject(new Error('Location request timed out. Please try again.'));
+                                            break;
+                                        default:
+                                            reject(new Error('Unable to get location. Please check your GPS/network connection.'));
+                                    }
+                                },
+                                lowAccuracyOptions
+                            );
+                        },
+                        highAccuracyOptions
+                    );
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // Pre-request location permission when page loads
+        async function preRequestLocation() {
+            const statusElement = document.getElementById('locationStatus');
+            
+            try {
+                console.log('Pre-requesting location permission...');
+                await ensureLocationPermission();
+                console.log('Location permission ready');
+                
+                // Test actual location retrieval
+                try {
+                    const testLocation = await getCurrentLocation();
+                    console.log('Test location successful:', testLocation);
+                    statusElement.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Location access ready';
+                } catch (locationError) {
+                    console.log('Test location failed:', locationError);
+                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Permission granted but GPS unavailable - will retry when creating session';
+                    document.getElementById('locationOverride').style.display = 'block';
+                }
+            } catch (error) {
+                console.log('Location permission not ready yet:', error.message);
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Location access needed - will request when creating session';
+            }
+        }
+
+        // Use default location (for cases where GPS is not working)
+        function useDefaultLocation() {
+            // Default coordinates (you can change these to your actual location)
+            const defaultLocation = {
+                latitude: 23.8103, // Default latitude (Dhaka, Bangladesh)
+                longitude: 90.4125, // Default longitude (Dhaka, Bangladesh)
+                accuracy: 1000 // Low accuracy since it's default
+            };
+            
+            // Store the default location for use in form submission
+            window.defaultLocation = defaultLocation;
+            
+            // Update status
+            document.getElementById('locationStatus').innerHTML = 
+                '<i class="fas fa-map-marker-alt" style="color: #007bff;"></i> Using default location';
+            
+            // Hide the override button
+            document.getElementById('locationOverride').style.display = 'none';
+            
+            console.log('Using default location:', defaultLocation);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, API_BASE:', API_BASE);
+            loadBatches();
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('sessionDate').value = today;
+            
+            // Pre-request location permission
+            preRequestLocation();
+        });
+    </script>
+</body>
+</html> 

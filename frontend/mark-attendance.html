@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance - QR Attendance System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .session-info {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .session-info h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #dc3545;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .student-info {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .student-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #155724;
+            margin-bottom: 5px;
+        }
+
+        .student-reg {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .form-control {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-qrcode"></i> Mark Attendance</h1>
+            <p>Scan the QR code to mark your attendance</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading session information...</p>
+        </div>
+
+        <div id="error" class="error hidden">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorMessage"></span>
+        </div>
+
+        <div id="sessionInfo" class="session-info hidden">
+            <h3><i class="fas fa-info-circle"></i> Session Information</h3>
+            <div class="info-item">
+                <span class="info-label">Batch:</span>
+                <span class="info-value" id="batchName"></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Date:</span>
+                <span class="info-value" id="sessionDate"></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Time:</span>
+                <span class="info-value" id="sessionTime"></span>
+            </div>
+        </div>
+
+        <form id="attendanceForm" class="hidden">
+            <div class="form-group">
+                <label for="studentSelect">
+                    <i class="fas fa-user"></i> Select Your Name
+                </label>
+                <select id="studentSelect" class="form-control" required>
+                    <option value="">Choose your name from the list...</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                <i class="fas fa-check"></i> Mark Attendance
+            </button>
+        </form>
+
+        <div id="success" class="success hidden">
+            <i class="fas fa-check-circle"></i>
+            <span id="successMessage"></span>
+        </div>
+
+        <div id="studentInfo" class="student-info hidden">
+            <div class="student-name" id="studentName"></div>
+            <div class="student-reg" id="studentReg"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        // Get session ID from URL parameters
+        function getSessionId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('session_id');
+        }
+
+        // Load session information
+        async function loadSessionInfo() {
+            const sessionId = getSessionId();
+            
+            if (!sessionId) {
+                showError('No session ID provided. Please scan the QR code again.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/qr/session/${sessionId}/info`);
+                const data = await response.json();
+
+                if (data.session) {
+                    // Display session information
+                    document.getElementById('batchName').textContent = data.session.batchName;
+                    document.getElementById('sessionDate').textContent = new Date(data.session.date).toLocaleDateString();
+                    document.getElementById('sessionTime').textContent = data.session.timeSlot;
+                    
+                    // Load students for this batch
+                    await loadBatchStudents(data.session.batchName);
+                    
+                    // Show session info and form
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('sessionInfo').classList.remove('hidden');
+                    document.getElementById('attendanceForm').classList.remove('hidden');
+                } else {
+                    showError('Session not found or inactive.');
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+                showError('Error loading session information. Please try again.');
+            }
+        }
+
+        // Load students for a specific batch
+        async function loadBatchStudents(batchName) {
+            try {
+                const response = await fetch(`${API_BASE}/qr/batch/${encodeURIComponent(batchName)}/students`);
+                const data = await response.json();
+
+                if (data.success && data.students) {
+                    const studentSelect = document.getElementById('studentSelect');
+                    
+                    // Clear existing options except the first one
+                    studentSelect.innerHTML = '<option value="">Choose your name from the list...</option>';
+                    
+                    // Add student options
+                    data.students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.regNumber;
+                        option.textContent = `${student.name} (${student.regNumber})`;
+                        studentSelect.appendChild(option);
+                    });
+                } else {
+                    showError('No students found for this batch.');
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showError('Error loading student list. Please try again.');
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            document.getElementById('success').classList.remove('hidden');
+            document.getElementById('successMessage').textContent = message;
+        }
+
+        // Show student information
+        function showStudentInfo(name, regNumber) {
+            document.getElementById('studentName').textContent = name;
+            document.getElementById('studentReg').textContent = regNumber;
+            document.getElementById('studentInfo').classList.remove('hidden');
+        }
+
+        // Check and request location permission automatically
+        async function ensureLocationPermission() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation is not supported by this browser'));
+                    return;
+                }
+
+                // Check current permission status
+                if (navigator.permissions) {
+                    navigator.permissions.query({ name: 'geolocation' }).then((permissionStatus) => {
+                        console.log('Permission status:', permissionStatus.state);
+                        
+                        if (permissionStatus.state === 'granted') {
+                            resolve();
+                        } else if (permissionStatus.state === 'prompt') {
+                            // Permission not decided yet, will be prompted
+                            resolve();
+                        } else if (permissionStatus.state === 'denied') {
+                            reject(new Error('Location permission denied. Please enable location access in your browser settings.'));
+                        }
+                    });
+                } else {
+                    // Fallback for browsers that don't support permissions API
+                    resolve();
+                }
+            });
+        }
+
+        // Get current location with automatic permission handling
+        function getCurrentLocation() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    // First ensure we have permission
+                    await ensureLocationPermission();
+                    
+                    // Try with high accuracy first
+                    const highAccuracyOptions = {
+                        enableHighAccuracy: true,
+                        timeout: 15000, // 15 seconds
+                        maximumAge: 0 // No cache for high accuracy
+                    };
+
+                    console.log('Starting high accuracy geolocation request...');
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            console.log('High accuracy geolocation success:', position);
+                            resolve({
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude,
+                                accuracy: position.coords.accuracy
+                            });
+                        },
+                        (error) => {
+                            console.log('High accuracy failed, trying low accuracy...');
+                            
+                            // Fallback to low accuracy
+                            const lowAccuracyOptions = {
+                                enableHighAccuracy: false,
+                                timeout: 10000, // 10 seconds
+                                maximumAge: 60000 // Allow 1 minute cache
+                            };
+                            
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    console.log('Low accuracy geolocation success:', position);
+                                    resolve({
+                                        latitude: position.coords.latitude,
+                                        longitude: position.coords.longitude,
+                                        accuracy: position.coords.accuracy
+                                    });
+                                },
+                                (fallbackError) => {
+                                    console.error('Both high and low accuracy failed:', fallbackError);
+                                    switch (fallbackError.code) {
+                                        case fallbackError.PERMISSION_DENIED:
+                                            reject(new Error('Location access denied. Please allow location access to mark attendance.'));
+                                            break;
+                                        case fallbackError.POSITION_UNAVAILABLE:
+                                            reject(new Error('Location information unavailable. Please check your GPS/network connection and try again.'));
+                                            break;
+                                        case fallbackError.TIMEOUT:
+                                            reject(new Error('Location request timed out. Please try again.'));
+                                            break;
+                                        default:
+                                            reject(new Error('Unable to get location. Please check your GPS/network connection.'));
+                                    }
+                                },
+                                lowAccuracyOptions
+                            );
+                        },
+                        highAccuracyOptions
+                    );
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // Handle form submission
+        document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sessionId = getSessionId();
+            const regNumber = document.getElementById('studentSelect').value;
+            
+            if (!regNumber) {
+                alert('Please select your name from the list.');
+                return;
+            }
+
+            // Disable form
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner"></div> Getting Location...';
+
+            try {
+                // Get student's current location
+                const location = await getCurrentLocation();
+                
+                submitBtn.innerHTML = '<div class="spinner"></div> Marking Attendance...';
+
+                const response = await fetch(`${API_BASE}/qr/mark-attendance`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        regNumber: regNumber,
+                        location: location
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Hide form and show success
+                    document.getElementById('attendanceForm').classList.add('hidden');
+                    showSuccess(data.message);
+                    
+                    if (data.attendance) {
+                        showStudentInfo(data.attendance.name, data.attendance.regNumber);
+                    }
+                } else {
+                    // Show error and re-enable form
+                    showError(data.error);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Mark Attendance';
+                }
+            } catch (error) {
+                console.error('Error marking attendance:', error);
+                showError(error.message || 'Error marking attendance. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Mark Attendance';
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSessionInfo();
+        });
+    </script>
+</body>
+</html> 
