@@ -127,6 +127,12 @@ A secure, modern attendance system that uses QR codes for easy student check-ins
 - Blocks attendance from detected VPN/proxy IPs
 - Uses IP geolocation services for detection
 
+### Duplicate Attendance Prevention
+- **IP-based prevention**: One attendance per IP per session
+- **Student-based prevention**: One attendance per student per session
+- **Cross-device protection**: Students cannot mark attendance from multiple devices
+- **Database-level constraints**: Unique indexes enforce data integrity
+
 ### IP-Based Restrictions
 - Only one attendance per IP address per session
 - Prevents multiple students from same device

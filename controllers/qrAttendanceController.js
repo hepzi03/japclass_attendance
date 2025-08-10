@@ -45,25 +45,40 @@ const detectVPN = async (ip) => {
 
 // Calculate distance between two GPS coordinates (Haversine formula)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  // Convert degrees to radians
+  const lat1Rad = lat1 * Math.PI / 180;
+  const lon1Rad = lon1 * Math.PI / 180;
+  const lat2Rad = lat2 * Math.PI / 180;
+  const lon2Rad = lon2 * Math.PI / 180;
 
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  // Haversine formula
+  const dLat = lat2Rad - lat1Rad;
+  const dLon = lon2Rad - lon1Rad;
+  
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
+  
+  // Earth's radius in meters
+  const R = 6371000;
+  
   return R * c; // Distance in meters
 };
 
 // Validate student location against session location
-const validateLocation = (sessionLocation, studentLocation, maxDistance = 50) => {
+const validateLocation = (sessionLocation, studentLocation, maxDistance = null) => {
+  // Use environment variable if not specified, default to 200m
+  const maxAllowedDistance = maxDistance || parseInt(process.env.MAX_ATTENDANCE_DISTANCE) || 200;
   if (!sessionLocation || !studentLocation) {
     return { valid: false, error: 'Location data missing' };
   }
+
+  // Debug logging
+  console.log('📍 Location Validation Debug:');
+  console.log(`   Session Location: ${sessionLocation.latitude}, ${sessionLocation.longitude}`);
+  console.log(`   Student Location: ${studentLocation.latitude}, ${studentLocation.longitude}`);
 
   const distance = calculateDistance(
     sessionLocation.latitude,
@@ -72,11 +87,13 @@ const validateLocation = (sessionLocation, studentLocation, maxDistance = 50) =>
     studentLocation.longitude
   );
 
+  console.log(`   Calculated Distance: ${Math.round(distance)}m (Max allowed: ${maxAllowedDistance}m)`);
+
   return {
-    valid: distance <= maxDistance,
+    valid: distance <= maxAllowedDistance,
     distance: Math.round(distance),
-    maxDistance,
-    error: distance > maxDistance ? `Student is ${Math.round(distance)}m away from class location (max: ${maxDistance}m)` : null
+    maxDistance: maxAllowedDistance,
+    error: distance > maxAllowedDistance ? `Student is ${Math.round(distance)}m away from class location (max: ${maxAllowedDistance}m)` : null
   };
 };
 
@@ -425,14 +442,14 @@ const markAttendance = async (req, res) => {
       }
 
       // Check for existing attendance from same IP
-      const existingAttendance = await Attendance.findOne({ 
+      const existingAttendanceFromIP = await Attendance.findOne({ 
         sessionId: session_id, 
         ip: clientIP 
       });
 
-      if (existingAttendance) {
+      if (existingAttendanceFromIP) {
         // If same IP but different student, reject
-        if (existingAttendance.regNumber !== regNumber) {
+        if (existingAttendanceFromIP.regNumber !== regNumber) {
           return res.status(403).json({ 
             error: 'Attendance already marked from this IP with a different registration number' 
           });
@@ -440,8 +457,21 @@ const markAttendance = async (req, res) => {
         // If same student from same IP, allow but don't create duplicate
         return res.json({ 
           success: true, 
-          message: 'Attendance already marked for this student',
-          attendance: existingAttendance
+          message: 'Attendance already marked for this student from this device',
+          attendance: existingAttendanceFromIP
+        });
+      }
+
+      // Check if this student has already marked attendance for this session (from any device/IP)
+      const existingStudentAttendance = await Attendance.findOne({ 
+        sessionId: session_id, 
+        regNumber: regNumber 
+      });
+
+      if (existingStudentAttendance) {
+        return res.status(403).json({ 
+          error: 'Attendance already marked for this student in this session',
+          attendance: existingStudentAttendance
         });
       }
 
@@ -506,14 +536,14 @@ const markAttendance = async (req, res) => {
           }
 
           // Check for existing attendance from same IP
-          const existingAttendance = await Attendance.findOne({ 
+          const existingAttendanceFromIP = await Attendance.findOne({ 
             sessionId: session_id, 
             ip: clientIP 
           });
 
-          if (existingAttendance) {
+          if (existingAttendanceFromIP) {
             // If same IP but different student, reject
-            if (existingAttendance.regNumber !== regNumber) {
+            if (existingAttendanceFromIP.regNumber !== regNumber) {
               return res.status(403).json({ 
                 error: 'Attendance already marked from this IP with a different registration number' 
               });
@@ -521,8 +551,21 @@ const markAttendance = async (req, res) => {
             // If same student from same IP, allow but don't create duplicate
             return res.json({ 
               success: true, 
-              message: 'Attendance already marked for this student',
-              attendance: existingAttendance
+              message: 'Attendance already marked for this student from this device',
+              attendance: existingAttendanceFromIP
+            });
+          }
+
+          // Check if this student has already marked attendance for this session (from any device/IP)
+          const existingStudentAttendance = await Attendance.findOne({ 
+            sessionId: session_id, 
+            regNumber: regNumber 
+          });
+
+          if (existingStudentAttendance) {
+            return res.status(403).json({ 
+              error: 'Attendance already marked for this student in this session',
+              attendance: existingStudentAttendance
             });
           }
 

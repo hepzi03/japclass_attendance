@@ -67,4 +67,7 @@ const attendanceSchema = new mongoose.Schema({
 // Compound index to prevent duplicate attendance from same IP for same session
 attendanceSchema.index({ sessionId: 1, ip: 1 }, { unique: true });
 
+// Compound index to prevent duplicate attendance from same student for same session
+attendanceSchema.index({ sessionId: 1, regNumber: 1 }, { unique: true });
+
 module.exports = mongoose.models.Attendance || mongoose.model('Attendance', attendanceSchema);

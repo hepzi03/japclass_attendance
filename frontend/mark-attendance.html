@@ -165,6 +165,62 @@
             margin: 15px 0;
             border-left: 4px solid #28a745;
         }
+        
+        .debug-info {
+            background: #f0f8ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+            font-size: 14px;
+        }
+        
+        .debug-info h4 {
+            margin: 0 0 15px 0;
+            color: #2196f3;
+            text-align: center;
+        }
+        
+        .debug-grid {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .debug-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .debug-item:last-child {
+            border-bottom: none;
+        }
+        
+        .debug-actions {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .debug-actions .btn {
+            margin: 0 5px;
+            padding: 8px 15px;
+            font-size: 12px;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
 
         .student-name {
             font-size: 1.2rem;
@@ -270,10 +326,37 @@
             <div class="student-name" id="studentName"></div>
             <div class="student-reg" id="studentReg"></div>
         </div>
+        
+        <!-- Debug Information (for troubleshooting) -->
+        <div id="debugInfo" class="debug-info hidden">
+            <h4>Debug Information</h4>
+            <div class="debug-grid">
+                <div class="debug-item">
+                    <strong>Your Location:</strong>
+                    <span id="studentCoords">Getting...</span>
+                </div>
+                <div class="debug-item">
+                    <strong>Session Location:</strong>
+                    <span id="sessionCoords">Loading...</span>
+                </div>
+                <div class="debug-item">
+                    <strong>Distance:</strong>
+                    <span id="distanceInfo">Calculating...</span>
+                </div>
+            </div>
+            <div class="debug-actions">
+                <button type="button" onclick="testDistanceCalculation()" class="btn btn-secondary">
+                    <i class="fas fa-calculator"></i> Test Distance
+                </button>
+                <button type="button" onclick="toggleDebugMode()" class="btn btn-secondary">
+                    <i class="fas fa-bug"></i> Toggle Debug
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
-        const API_BASE = 'https://japclass-attendance-1.onrender.com/api';
+        const API_BASE = 'https://japclass-attendance.onrender.com/api';
 
         // Get session ID from URL parameters
         function getSessionId() {
@@ -299,6 +382,11 @@
                     document.getElementById('batchName').textContent = data.session.batchName;
                     document.getElementById('sessionDate').textContent = new Date(data.session.date).toLocaleDateString();
                     document.getElementById('sessionTime').textContent = data.session.timeSlot;
+                    
+                    // Show session coordinates in debug info
+                    if (data.session.location) {
+                        document.getElementById('sessionCoords').textContent = `${data.session.location.latitude.toFixed(6)}, ${data.session.location.longitude.toFixed(6)}`;
+                    }
                     
                     // Load students for this batch
                     await loadBatchStudents(data.session.batchName);
@@ -485,6 +573,16 @@
                 // Get student's current location
                 const location = await getCurrentLocation();
                 
+                // Debug: Show coordinates being sent
+                console.log('📍 Location being sent to server:', location);
+                console.log(`   Latitude: ${location.latitude}`);
+                console.log(`   Longitude: ${location.longitude}`);
+                console.log(`   Accuracy: ${location.accuracy}m`);
+                
+                // Update debug info
+                document.getElementById('studentCoords').textContent = `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`;
+                document.getElementById('debugInfo').classList.remove('hidden');
+                
                 submitBtn.innerHTML = '<div class="spinner"></div> Marking Attendance...';
 
                 const response = await fetch(`${API_BASE}/qr/mark-attendance`, {
@@ -511,7 +609,23 @@
                     }
                 } else {
                     // Show error and re-enable form
-                    showError(data.error);
+                    let errorMessage = data.error;
+                    
+                    // Special handling for duplicate attendance
+                    if (data.error && data.error.includes('already marked for this student')) {
+                        errorMessage = 'You have already marked attendance for this session. Attendance cannot be marked twice.';
+                        // Hide form since attendance is already marked
+                        document.getElementById('attendanceForm').classList.add('hidden');
+                        showError(errorMessage);
+                        
+                        // Show student info if available
+                        if (data.attendance) {
+                            showStudentInfo(data.attendance.name, data.attendance.regNumber);
+                        }
+                        return;
+                    }
+                    
+                    showError(errorMessage);
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-check"></i> Mark Attendance';
                 }
@@ -522,6 +636,68 @@
                 submitBtn.innerHTML = '<i class="fas fa-check"></i> Mark Attendance';
             }
         });
+
+        // Debug functions
+        function testDistanceCalculation() {
+            const studentCoords = document.getElementById('studentCoords').textContent;
+            const sessionCoords = document.getElementById('sessionCoords').textContent;
+            
+            if (studentCoords === 'Getting...' || sessionCoords === 'Loading...') {
+                alert('Please wait for location data to load first.');
+                return;
+            }
+            
+            // Parse coordinates
+            const [studentLat, studentLon] = studentCoords.split(',').map(coord => parseFloat(coord.trim()));
+            const [sessionLat, sessionLon] = sessionCoords.split(',').map(coord => parseFloat(coord.trim()));
+            
+            // Calculate distance using Haversine formula
+            const distance = calculateDistance(studentLat, studentLon, sessionLat, sessionLon);
+            
+            // Update distance info
+            document.getElementById('distanceInfo').textContent = `${Math.round(distance)}m`;
+            
+            // Show result
+            const maxDistance = 200; // This should match your backend setting
+            if (distance <= maxDistance) {
+                alert(`✅ Distance: ${Math.round(distance)}m (Within ${maxDistance}m limit)`);
+            } else {
+                alert(`❌ Distance: ${Math.round(distance)}m (Exceeds ${maxDistance}m limit)`);
+            }
+        }
+        
+        function toggleDebugMode() {
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo.classList.contains('hidden')) {
+                debugInfo.classList.remove('hidden');
+            } else {
+                debugInfo.classList.add('hidden');
+            }
+        }
+        
+        // Haversine distance calculation function
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            // Convert degrees to radians
+            const lat1Rad = lat1 * Math.PI / 180;
+            const lon1Rad = lon1 * Math.PI / 180;
+            const lat2Rad = lat2 * Math.PI / 180;
+            const lon2Rad = lon2 * Math.PI / 180;
+
+            // Haversine formula
+            const dLat = lat2Rad - lat1Rad;
+            const dLon = lon2Rad - lon1Rad;
+            
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            
+            // Earth's radius in meters
+            const R = 6371000;
+            
+            return R * c; // Distance in meters
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
