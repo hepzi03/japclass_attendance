@@ -198,6 +198,37 @@
             border-bottom: none;
         }
         
+        .gps-status {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .gps-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .gps-status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .gps-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .gps-status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
         .debug-actions {
             margin-top: 15px;
             text-align: center;
@@ -332,6 +363,10 @@
             <h4>Debug Information</h4>
             <div class="debug-grid">
                 <div class="debug-item">
+                    <strong>GPS Status:</strong>
+                    <span id="gpsStatus" class="gps-status">Checking...</span>
+                </div>
+                <div class="debug-item">
                     <strong>Your Location:</strong>
                     <span id="studentCoords">Getting...</span>
                 </div>
@@ -345,6 +380,12 @@
                 </div>
             </div>
             <div class="debug-actions">
+                <button type="button" onclick="refreshGPS()" class="btn btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Refresh GPS
+                </button>
+                <button type="button" onclick="checkGPSAvailability()" class="btn btn-secondary">
+                    <i class="fas fa-satellite"></i> Check GPS
+                </button>
                 <button type="button" onclick="testDistanceCalculation()" class="btn btn-secondary">
                     <i class="fas fa-calculator"></i> Test Distance
                 </button>
@@ -408,6 +449,9 @@
                     document.getElementById('loading').classList.add('hidden');
                     document.getElementById('sessionInfo').classList.remove('hidden');
                     document.getElementById('attendanceForm').classList.remove('hidden');
+                    
+                    // Check GPS availability immediately
+                    checkGPSAvailability();
                 } else {
                     showError('Session not found or inactive.');
                 }
@@ -492,6 +536,125 @@
                     resolve();
                 }
             });
+        }
+
+        // Check GPS availability and update status
+        function checkGPSAvailability() {
+            console.log('🔍 Checking GPS availability...');
+            
+            if (!navigator.geolocation) {
+                console.log('❌ Geolocation not supported');
+                updateGPSStatus('GPS not supported by browser', 'error');
+                return;
+            }
+            
+            // Check permission status
+            if (navigator.permissions) {
+                navigator.permissions.query({ name: 'geolocation' }).then((permissionStatus) => {
+                    console.log('📱 Permission status:', permissionStatus.state);
+                    
+                    if (permissionStatus.state === 'granted') {
+                        console.log('✅ Permission granted, testing GPS...');
+                        testGPSAccuracy();
+                    } else if (permissionStatus.state === 'prompt') {
+                        console.log('⏳ Permission not decided, requesting...');
+                        updateGPSStatus('Requesting location permission...', 'warning');
+                        requestLocationPermission();
+                    } else if (permissionStatus.state === 'denied') {
+                        console.log('❌ Permission denied');
+                        updateGPSStatus('Location permission denied. Please enable in browser settings.', 'error');
+                    }
+                });
+            } else {
+                // Fallback for browsers without permissions API
+                console.log('📱 No permissions API, testing GPS directly...');
+                testGPSAccuracy();
+            }
+        }
+        
+        // Test GPS accuracy by getting a quick position
+        function testGPSAccuracy() {
+            console.log('🧭 Testing GPS accuracy...');
+            updateGPSStatus('Testing GPS accuracy...', 'info');
+            
+            const testOptions = {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 30000
+            };
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    console.log('✅ GPS test successful:', position);
+                    const accuracy = position.coords.accuracy;
+                    if (accuracy <= 50) {
+                        updateGPSStatus(`GPS Available (High Accuracy: ${Math.round(accuracy)}m)`, 'success');
+                    } else if (accuracy <= 100) {
+                        updateGPSStatus(`GPS Available (Medium Accuracy: ${Math.round(accuracy)}m)`, 'success');
+                    } else {
+                        updateGPSStatus(`GPS Available (Low Accuracy: ${Math.round(accuracy)}m)`, 'warning');
+                    }
+                },
+                (error) => {
+                    console.log('❌ GPS test failed:', error);
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            updateGPSStatus('Location access denied', 'error');
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            updateGPSStatus('GPS signal unavailable. Please move to open area.', 'error');
+                            break;
+                        case error.TIMEOUT:
+                            updateGPSStatus('GPS request timed out. Please try again.', 'error');
+                            break;
+                        default:
+                            updateGPSStatus('GPS error: ' + error.message, 'error');
+                    }
+                },
+                testOptions
+            );
+        }
+        
+        // Request location permission
+        function requestLocationPermission() {
+            console.log('🔐 Requesting location permission...');
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    console.log('✅ Permission granted and GPS working:', position);
+                    checkGPSAvailability(); // Re-check with new permission
+                },
+                (error) => {
+                    console.log('❌ Permission request failed:', error);
+                    updateGPSStatus('Location permission denied', 'error');
+                },
+                { timeout: 10000 }
+            );
+        }
+        
+        // Update GPS status display
+        function updateGPSStatus(message, type) {
+            const statusElement = document.getElementById('gpsStatus');
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = `gps-status ${type}`;
+            }
+            console.log(`📱 GPS Status [${type}]:`, message);
+        }
+        
+        // Manual GPS refresh function
+        function refreshGPS() {
+            console.log('🔄 Manually refreshing GPS...');
+            updateGPSStatus('Refreshing GPS...', 'info');
+            
+            // Clear any existing timeout
+            if (window.gpsTimeout) {
+                clearTimeout(window.gpsTimeout);
+            }
+            
+            // Wait a moment then check GPS
+            window.gpsTimeout = setTimeout(() => {
+                checkGPSAvailability();
+            }, 1000);
         }
 
         // Get current location with automatic permission handling
