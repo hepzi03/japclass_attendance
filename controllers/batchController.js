@@ -1,5 +1,6 @@
 const Batch = require('../models/Batch');
 const Student = require('../models/Student');
+const mongoose = require('mongoose');
 
 // Add a new batch
 const addBatch = async (req, res) => {
@@ -39,11 +40,20 @@ const deleteBatch = async (req, res) => {
 // Get all batches (simple version)
 const getAllBatches = async (req, res) => {
   try {
+    console.log('🔍 getAllBatches called');
+    
+    // Check if we can connect to the database
+    if (mongoose.connection.readyState !== 1) {
+      console.log('❌ Database not connected. Ready state:', mongoose.connection.readyState);
+      return res.status(500).json({ error: 'Database not connected', readyState: mongoose.connection.readyState });
+    }
+    
     const batches = await Batch.find().sort({ name: 1, level: 1 });
+    console.log('✅ Found batches:', batches.length);
     res.status(200).json({ batches });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch batches' });
+    console.error('❌ Error in getAllBatches:', err);
+    res.status(500).json({ error: 'Failed to fetch batches', details: err.message });
   }
 };
 
