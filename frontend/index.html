@@ -360,9 +360,16 @@
                         <i class="fas fa-qrcode"></i> Create Session & Generate QR
                     </button>
                     <div id="locationStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;">
-                        <i class="fas fa-spinner fa-spin"></i> Checking GPS location access...
+                        <i class="fas fa-spinner fa-spin"></i> Checking location access...
                     </div>
-
+                    <div id="locationOverride" style="margin-top: 10px; display: none;">
+                        <button type="button" class="btn btn-secondary" onclick="useDefaultLocation()" style="font-size: 0.8rem;">
+                            <i class="fas fa-map-marker-alt"></i> Use Default Location
+                        </button>
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Use this if GPS is not working
+                        </small>
+                    </div>
                 </form>
             </div>
 
@@ -525,11 +532,26 @@
                     console.error(`Location error (attempt ${attempts}):`, error);
                     
                     if (attempts >= maxAttempts) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                        
-                        alert('GPS location is required and could not be obtained. Please:\n\n1. Check your GPS/network connection\n2. Ensure location permission is granted\n3. Try again in a few seconds\n\nLocation access is mandatory for creating attendance sessions.');
-                        return;
+                        // Check if default location is available
+                        if (window.defaultLocation) {
+                            console.log('Using default location as fallback');
+                            teacherLocation = window.defaultLocation;
+                            break;
+                        } else {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                            
+                            // Show a more helpful error message with option to use default
+                            const useDefault = confirm('Unable to get GPS location. Would you like to use a default location instead?');
+                            if (useDefault) {
+                                useDefaultLocation();
+                                teacherLocation = window.defaultLocation;
+                                break;
+                            } else {
+                                alert('Location access is required. Please:\n\n1. Check your GPS/network connection\n2. Or click "Use Default Location" button\n3. Then try again.');
+                                return;
+                            }
+                        }
                     }
                     
                     // Wait a bit before retrying
@@ -866,13 +888,6 @@
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
                             console.log('High accuracy geolocation success:', position);
-                            
-                            // Check if accuracy is good enough (less than 50 meters)
-                            if (position.coords.accuracy > 50) {
-                                reject(new Error('GPS accuracy too low (' + Math.round(position.coords.accuracy) + 'm). Please move to an open area or wait for better GPS signal.'));
-                                return;
-                            }
-                            
                             resolve({
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude,
@@ -892,13 +907,6 @@
                             navigator.geolocation.getCurrentPosition(
                                 (position) => {
                                     console.log('Low accuracy geolocation success:', position);
-                                    
-                                    // Check if accuracy is acceptable (less than 100 meters for low accuracy)
-                                    if (position.coords.accuracy > 100) {
-                                        reject(new Error('GPS accuracy too low (' + Math.round(position.coords.accuracy) + 'm). Please move to an open area or wait for better GPS signal.'));
-                                        return;
-                                    }
-                                    
                                     resolve({
                                         latitude: position.coords.latitude,
                                         longitude: position.coords.longitude,
@@ -945,18 +953,39 @@
                 try {
                     const testLocation = await getCurrentLocation();
                     console.log('Test location successful:', testLocation);
-                    statusElement.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> GPS location ready';
+                    statusElement.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Location access ready';
                 } catch (locationError) {
                     console.log('Test location failed:', locationError);
-                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> GPS unavailable - will retry when creating session';
+                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Permission granted but GPS unavailable - will retry when creating session';
+                    document.getElementById('locationOverride').style.display = 'block';
                 }
             } catch (error) {
                 console.log('Location permission not ready yet:', error.message);
-                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> GPS permission needed - will request when creating session';
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i> Location access needed - will request when creating session';
             }
         }
 
-
+        // Use default location (for cases where GPS is not working)
+        function useDefaultLocation() {
+            // Default coordinates (you can change these to your actual location)
+            const defaultLocation = {
+                latitude: 23.8103, // Default latitude (Dhaka, Bangladesh)
+                longitude: 90.4125, // Default longitude (Dhaka, Bangladesh)
+                accuracy: 1000 // Low accuracy since it's default
+            };
+            
+            // Store the default location for use in form submission
+            window.defaultLocation = defaultLocation;
+            
+            // Update status
+            document.getElementById('locationStatus').innerHTML = 
+                '<i class="fas fa-map-marker-alt" style="color: #007bff;"></i> Using default location';
+            
+            // Hide the override button
+            document.getElementById('locationOverride').style.display = 'none';
+            
+            console.log('Using default location:', defaultLocation);
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {

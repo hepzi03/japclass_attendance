@@ -335,8 +335,7 @@ const getSessionInfo = async (req, res) => {
         sessionId: session.sessionId,
         batchName: session.batchName,
         date: session.date,
-        timeSlot: session.timeSlot,
-        location: session.location
+        timeSlot: session.timeSlot
       }
     });
   } catch (error) {
