@@ -45,7 +45,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/student', require('./routes/student'));
 app.use('/api/batch', require('./routes/batch'));
 app.use('/api/attendance', attendanceRoutes);
-app.use('/api', sessionRoutes);
+app.use('/api/session', sessionRoutes);
 app.use('/api/qr', require('./routes/qrAttendance'));
 
 //app.use('/api/session', require('./routes/session'));
