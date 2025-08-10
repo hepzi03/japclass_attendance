@@ -361,7 +361,10 @@
         // Get session ID from URL parameters
         function getSessionId() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('session_id');
+            const sessionId = urlParams.get('session_id');
+            console.log('URL params:', window.location.search);
+            console.log('Extracted session ID:', sessionId);
+            return sessionId;
         }
 
         // Load session information
@@ -373,9 +376,14 @@
                 return;
             }
 
+            console.log('Loading session info for ID:', sessionId);
+            console.log('API URL:', `${API_BASE}/qr/session/${sessionId}/info`);
+
             try {
                 const response = await fetch(`${API_BASE}/qr/session/${sessionId}/info`);
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Session data received:', data);
 
                 if (data.session) {
                     // Display session information
@@ -384,8 +392,13 @@
                     document.getElementById('sessionTime').textContent = data.session.timeSlot;
                     
                     // Show session coordinates in debug info
+                    console.log('Session location data:', data.session.location);
                     if (data.session.location) {
                         document.getElementById('sessionCoords').textContent = `${data.session.location.latitude.toFixed(6)}, ${data.session.location.longitude.toFixed(6)}`;
+                        console.log('Updated session coordinates display');
+                    } else {
+                        console.log('No location data in session');
+                        document.getElementById('sessionCoords').textContent = 'No location data';
                     }
                     
                     // Load students for this batch
