@@ -665,8 +665,13 @@ const getSessionAttendance = async (req, res) => {
 // Get all sessions with attendance data
 const getAllSessions = async (req, res) => {
   try {
-    const { batchId, date } = req.query;
-    let query = { isActive: true };
+    const { batchId, date, showEnded } = req.query;
+    let query = {};
+    
+    // Only filter by isActive if explicitly requested, otherwise show all sessions
+    if (showEnded === 'false') {
+      query.isActive = true;
+    }
 
     if (batchId) query.batchId = batchId;
     if (date) query.date = { $gte: new Date(date), $lt: new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000) };
