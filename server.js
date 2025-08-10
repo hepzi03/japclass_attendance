@@ -17,18 +17,27 @@ const allowedOrigins = new Set([
   'http://localhost:5173',
   'https://japclass-attendance-1.onrender.com',
   'https://japclass-attendance.onrender.com',
+  'https://japclass-attendance-1.onrender.com', // Frontend domain
 ]);
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Debug CORS requests
+      console.log('🌐 CORS request from origin:', origin);
+      
       // Allow non-browser requests with no origin (like health checks)
       if (!origin) {
+        console.log('✅ Allowing request with no origin (health check)');
         return callback(null, true);
       }
+      
       if (allowedOrigins.has(origin)) {
+        console.log('✅ CORS allowed for origin:', origin);
         return callback(null, true);
       }
+      
+      console.log('❌ CORS blocked for origin:', origin);
       return callback(new Error(`CORS: Origin not allowed: ${origin}`));
     },
     credentials: true,
