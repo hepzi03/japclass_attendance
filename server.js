@@ -7,12 +7,16 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust proxy for Render deployment
+app.set('trust proxy', 1);
+
 // Middleware
 const allowedOrigins = new Set([
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:5173',
   'https://japclass-attendance-1.onrender.com',
+  'https://japclass-attendance.onrender.com',
 ]);
 
 app.use(
