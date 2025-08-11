@@ -363,6 +363,31 @@
             border-left: 3px solid #43a047;
         }
 
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+
         /* Fix overflow/alignment for portrait mobile */
         .session-header { flex-wrap: wrap; gap: 8px; }
         .info-grid { width: 100%; }
@@ -468,6 +493,9 @@
                     <div id="locationOverride" style="margin-top: 10px; display: none;">
                         <button type="button" class="btn btn-secondary" onclick="useDefaultLocation()" style="font-size: 0.8rem;">
                             <i class="fas fa-map-marker-alt"></i> Use Default Location
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="handleSessionCreation()" style="font-size: 0.8rem;">
+                            <i class="fas fa-play"></i> Create Session Now
                         </button>
                         <small style="display: block; margin-top: 5px; color: #666;">
                             Use this if GPS is not working
@@ -597,49 +625,67 @@
             document.getElementById('locationStatus').innerHTML = 
                 '<i class="fas fa-map-marker-alt"></i> Using default location (Chennai, India)';
             document.getElementById('locationOverride').style.display = 'none';
+            
+            // Enable the create session button if form is filled
+            const batchSelect = document.getElementById('batchSelect');
+            const sessionDate = document.getElementById('sessionDate');
+            const timeSlot = document.getElementById('timeSlot');
+            
+            if (batchSelect.value && sessionDate.value && timeSlot.value) {
+                document.getElementById('createSessionBtn').disabled = false;
+            }
         }
 
         // Handle form submission
         document.getElementById('sessionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+            await handleSessionCreation();
+        });
+
+        // Handle manual session creation (for default location or when button is clicked)
+        async function handleSessionCreation() {
             if (!currentLocation) {
                 // Get current location first
                 if (navigator.geolocation) {
                     document.getElementById('locationStatus').innerHTML = 
                         '<i class="fas fa-spinner fa-spin"></i> Getting your location...';
                     
-                    navigator.geolocation.getCurrentPosition(
-                        function(position) {
-                            currentLocation = {
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                                accuracy: position.coords.accuracy
-                            };
-                            document.getElementById('locationStatus').innerHTML = 
-                                '<i class="fas fa-check-circle"></i> Location captured! Creating session...';
-                            createSession();
-                        },
-                        function(error) {
-                            document.getElementById('locationStatus').innerHTML = 
-                                '<i class="fas fa-exclamation-triangle"></i> Location error: ' + error.message;
-                            document.getElementById('locationOverride').style.display = 'block';
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 0
-                        }
-                    );
+                    try {
+                        const position = await new Promise((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                                enableHighAccuracy: true,
+                                timeout: 10000,
+                                maximumAge: 0
+                            });
+                        });
+                        
+                        currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+                        
+                        document.getElementById('locationStatus').innerHTML = 
+                            '<i class="fas fa-check-circle"></i> Location captured! Creating session...';
+                        
+                        // Now create the session with the captured location
+                        await createSession();
+                        
+                    } catch (error) {
+                        document.getElementById('locationStatus').innerHTML = 
+                            '<i class="fas fa-exclamation-triangle"></i> Location error: ' + error.message;
+                        document.getElementById('locationOverride').style.display = 'block';
+                        alert('Failed to get location: ' + error.message + '\n\nPlease use the "Use Default Location" button instead.');
+                    }
                 } else {
                     alert('Geolocation not supported. Please use default location.');
                     useDefaultLocation();
-                    createSession();
+                    await createSession();
                 }
             } else {
-                createSession();
+                await createSession();
             }
-        });
+        }
 
         async function createSession() {
             const batchSelect = document.getElementById('batchSelect');
@@ -652,8 +698,12 @@
                 return;
             }
 
-            if (!currentLocation) {
-                alert('Please capture location first!');
+            // Double-check that we have valid location data
+            if (!currentLocation || typeof currentLocation.latitude !== 'number' || typeof currentLocation.longitude !== 'number') {
+                alert('Location data is invalid. Please capture location again or use default location.');
+                currentLocation = null;
+                document.getElementById('locationStatus').innerHTML = 
+                    '<i class="fas fa-exclamation-triangle"></i> Location invalid. Please try again.';
                 return;
             }
 
@@ -687,10 +737,14 @@
                     // Clear form
                     document.getElementById('sessionForm').reset();
                     document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+                    // Reset location status
+                    document.getElementById('locationStatus').innerHTML = 
+                        '<i class="fas fa-map-marker-alt"></i> Location access available. Click "Create Session" to capture location.';
                 } else {
                     alert('Error creating session: ' + result.message);
                 }
             } catch (error) {
+                console.error('Session creation error:', error);
                 alert('Error creating session: ' + error.message);
             } finally {
                 document.getElementById('createSessionBtn').disabled = false;
