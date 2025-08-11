@@ -15,171 +15,111 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: #333;
             padding: 20px;
         }
 
         .container {
-            max-width: 600px;
+            max-width: 500px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
 
-        .header {
+        h1 {
             text-align: center;
+            color: #333;
             margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            color: #666;
-            font-size: 1.1rem;
+            font-size: 2.2em;
+            font-weight: 700;
         }
 
         .form-group {
             margin-bottom: 20px;
         }
 
-        .form-group label {
+        label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
             color: #555;
+            font-weight: 600;
+            font-size: 0.95em;
         }
 
-        .form-group input, .form-group select {
+        input, select {
             width: 100%;
             padding: 15px;
             border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
         }
 
-        .form-group input:focus, .form-group select:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #667eea;
+            background: white;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            width: 100%;
+            padding: 15px;
             border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1.1rem;
+            border-radius: 12px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            width: 100%;
             margin-bottom: 15px;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
         .btn-success {
             background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
         }
 
-        .btn-success:hover {
-            box-shadow: 0 10px 25px rgba(86, 171, 47, 0.4);
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(86, 171, 47, 0.3);
         }
 
-        .alert {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            border-color: #28a745;
-            color: #155724;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            border-color: #dc3545;
-            color: #721c24;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            border-color: #17a2b8;
-            color: #0c5460;
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
         }
 
         .debug-panel {
             background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
+            border: 1px solid #e1e5e9;
+            border-radius: 12px;
             padding: 20px;
-            margin-top: 20px;
-        }
-
-        .debug-panel h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-
-        .debug-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 8px;
-            background: white;
-            border-radius: 5px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
         }
 
         .debug-label {
             font-weight: 600;
-            color: #555;
+            color: #667eea;
+            margin-right: 10px;
         }
 
         .debug-value {
-            color: #667eea;
-            font-family: monospace;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
             color: #666;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         .back-link {
@@ -191,107 +131,95 @@
             color: #667eea;
             text-decoration: none;
             font-weight: 600;
+            transition: color 0.3s ease;
         }
 
         .back-link a:hover {
-            text-decoration: underline;
+            color: #764ba2;
         }
 
-        /* Mobile Responsiveness */
-        @media (max-width: 768px) {
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        @media (max-width: 600px) {
             .container {
-                padding: 20px;
                 margin: 10px;
+                padding: 20px;
             }
-
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .btn {
-                padding: 12px 25px;
-                font-size: 1rem;
+            
+            h1 {
+                font-size: 1.8em;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>💻 CS Attendance</h1>
-            <p>Mark your attendance for Computer Science classes</p>
-        </div>
-
+        <h1>💻 CS Attendance</h1>
+        
         <form id="attendanceForm">
             <div class="form-group">
                 <label for="sessionId">Session ID:</label>
-                <input type="text" id="sessionId" placeholder="Enter session ID from QR code" required>
+                <input type="text" id="sessionId" name="sessionId" required placeholder="Enter session ID">
             </div>
-
+            
             <div class="form-group">
                 <label for="regNumber">Registration Number:</label>
-                <input type="text" id="regNumber" placeholder="Enter your registration number" required>
+                <input type="text" id="regNumber" name="regNumber" required placeholder="e.g., 23CZ001">
             </div>
-
+            
             <div class="form-group">
-                <label for="studentName">Full Name:</label>
-                <input type="text" id="studentName" placeholder="Enter your full name" required>
+                <label for="studentName">Student Name:</label>
+                <input type="text" id="studentName" name="studentName" required placeholder="Enter your full name">
             </div>
-
+            
             <div class="form-group">
                 <label for="batchName">Batch:</label>
-                <select id="batchName" required>
-                    <option value="">Select your batch</option>
+                <select id="batchName" name="batchName" required>
                     <option value="CS2023">CS2023</option>
                     <option value="CS2024">CS2024</option>
                     <option value="CS2025">CS2025</option>
                 </select>
             </div>
-
-            <div class="form-group">
-                <label for="location">Location:</label>
-                <input type="text" id="location" placeholder="Enter your current location" required>
-            </div>
-
-            <div class="form-group">
-                <label for="notes">Notes (Optional):</label>
-                <input type="text" id="notes" placeholder="Any additional notes...">
-            </div>
-
-            <button type="button" class="btn" onclick="getCurrentLocation()">
-                📍 Get Current Location
-            </button>
-
-            <button type="submit" class="btn btn-success" id="submitBtn" disabled>
-                ✅ Mark Attendance
-            </button>
+            
+            <button type="button" class="btn btn-primary" onclick="getCurrentLocation()">📍 Get Current Location</button>
+            <button type="submit" class="btn btn-success" id="submitBtn" disabled>✅ Mark Attendance</button>
         </form>
 
-        <div id="locationInfo" style="display: none;">
-            <h3>📍 Location Information</h3>
-            <div id="coordinates"></div>
-        </div>
-
-        <div id="result" style="display: none;"></div>
-
-        <!-- Debug Panel -->
         <div class="debug-panel">
-            <h3>🔍 Debug Information</h3>
-            <div class="debug-item">
-                <span class="debug-label">Student Coordinates:</span>
-                <span class="debug-value" id="studentCoords">Not captured</span>
+            <div style="margin-bottom: 10px;">
+                <span class="debug-label">Coordinates:</span>
+                <span class="debug-value" id="coordinates">Not captured yet</span>
             </div>
-            <div class="debug-item">
-                <span class="debug-label">Session Coordinates:</span>
-                <span class="debug-value" id="sessionCoords">Not available</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Calculated Distance:</span>
-                <span class="debug-value" id="calculatedDistance">Not calculated</span>
-            </div>
-            <div class="debug-item">
+            <div style="margin-bottom: 10px;">
                 <span class="debug-label">IP Address:</span>
                 <span class="debug-value" id="ipAddress">Loading...</span>
+            </div>
+            <div>
+                <span class="debug-label">Accuracy:</span>
+                <span class="debug-value" id="accuracy">Not available</span>
             </div>
         </div>
 
@@ -304,26 +232,24 @@
         const API_BASE = 'https://japclass-backend.onrender.com/api/cs';
         let currentLocation = null;
 
-        // Get current location with high accuracy
         async function getCurrentLocation() {
-            if (!navigator.geolocation) {
-                alert('Geolocation is not supported by this browser.');
-                return;
-            }
-
-            const locationInfo = document.getElementById('locationInfo');
-            const coordinates = document.getElementById('coordinates');
-            const submitBtn = document.getElementById('submitBtn');
+            const btn = event.target;
+            const originalText = btn.textContent;
             
-            coordinates.innerHTML = '<div class="loading"><div class="spinner"></div>Getting location...</div>';
-            locationInfo.style.display = 'block';
-
+            btn.textContent = '📍 Getting Location...';
+            btn.disabled = true;
+            
             try {
-                // Take multiple readings for better accuracy
+                if (!navigator.geolocation) {
+                    alert('Geolocation is not supported by this browser.');
+                    return;
+                }
+
+                // Get multiple readings for better accuracy
                 const positions = [];
-                const numReadings = 3;
+                const maxReadings = 3;
                 
-                for (let i = 0; i < numReadings; i++) {
+                for (let i = 0; i < maxReadings; i++) {
                     const position = await new Promise((resolve, reject) => {
                         navigator.geolocation.getCurrentPosition(resolve, reject, {
                             enableHighAccuracy: true,
@@ -332,10 +258,12 @@
                         });
                     });
                     positions.push(position);
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between readings
+                    if (i < maxReadings - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between readings
+                    }
                 }
 
-                // Calculate average coordinates
+                // Average the coordinates for better accuracy
                 const avgLat = positions.reduce((sum, pos) => sum + pos.coords.latitude, 0) / positions.length;
                 const avgLon = positions.reduce((sum, pos) => sum + pos.coords.longitude, 0) / positions.length;
                 const avgAccuracy = positions.reduce((sum, pos) => sum + pos.coords.accuracy, 0) / positions.length;
@@ -346,37 +274,28 @@
                     accuracy: avgAccuracy
                 };
 
-                coordinates.innerHTML = `
-                    <div class="alert alert-success">
-                        <strong>Location captured successfully!</strong><br>
-                        Latitude: ${currentLocation.latitude.toFixed(6)}<br>
-                        Longitude: ${currentLocation.longitude.toFixed(6)}<br>
-                        Accuracy: ${Math.round(currentLocation.accuracy)}m<br>
-                        <small>Average of ${numReadings} readings for better accuracy</small>
-                    </div>
-                `;
-
-                submitBtn.disabled = false;
-                updateDebugInfo();
+                document.getElementById('coordinates').textContent = `${avgLat.toFixed(6)}, ${avgLon.toFixed(6)}`;
+                document.getElementById('accuracy').textContent = `${Math.round(avgAccuracy)}m`;
+                
+                document.getElementById('submitBtn').disabled = false;
+                
+                btn.textContent = '✅ Location Captured!';
+                btn.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%)';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                    btn.disabled = false;
+                }, 2000);
 
             } catch (error) {
-                coordinates.innerHTML = `
-                    <div class="alert alert-error">
-                        <strong>Error getting location:</strong> ${error.message}
-                    </div>
-                `;
+                console.error('Error getting location:', error);
+                alert('Error getting location: ' + error.message);
+                btn.textContent = originalText;
+                btn.disabled = false;
             }
         }
 
-        // Update debug information
-        function updateDebugInfo() {
-            if (currentLocation) {
-                document.getElementById('studentCoords').textContent = 
-                    `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`;
-            }
-        }
-
-        // Get IP address
         async function getIPAddress() {
             try {
                 const response = await fetch('https://api.ipify.org?format=json');
@@ -387,94 +306,74 @@
             }
         }
 
-        // Handle form submission
         document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
+            
             if (!currentLocation) {
-                alert('Please get your current location first!');
+                alert('Please capture your location first!');
                 return;
             }
 
-            const formData = {
-                session_id: document.getElementById('sessionId').value,
-                reg_number: document.getElementById('regNumber').value,
-                student_name: document.getElementById('studentName').value,
-                batch_name: document.getElementById('batchName').value,
-                latitude: currentLocation.latitude,
-                longitude: currentLocation.longitude,
-                accuracy: currentLocation.accuracy,
-                location: document.getElementById('location').value,
-                notes: document.getElementById('notes').value
-            };
-
+            const formData = new FormData(e.target);
             const submitBtn = document.getElementById('submitBtn');
-            const resultDiv = document.getElementById('result');
-
-            submitBtn.disabled = true;
+            const originalText = submitBtn.textContent;
+            
             submitBtn.textContent = '⏳ Marking Attendance...';
-
+            submitBtn.disabled = true;
+            
             try {
                 const response = await fetch(`${API_BASE}/mark-attendance`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify({
+                        session_id: formData.get('sessionId'),
+                        reg_number: formData.get('regNumber'),
+                        student_name: formData.get('studentName'),
+                        batch_name: formData.get('batchName'),
+                        latitude: currentLocation.latitude,
+                        longitude: currentLocation.longitude,
+                        accuracy: currentLocation.accuracy
+                    })
                 });
 
                 const result = await response.json();
-
-                if (response.ok) {
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            <h3>✅ Attendance Marked Successfully!</h3>
-                            <p><strong>Student:</strong> ${result.attendance.studentName}</p>
-                            <p><strong>Session:</strong> ${result.attendance.sessionId}</p>
-                            <p><strong>Time:</strong> ${new Date(result.attendance.timestamp).toLocaleString()}</p>
-                            <p><strong>Distance:</strong> ${result.attendance.distance.toFixed(2)}m</p>
-                            <p><strong>IP Address:</strong> ${result.attendance.ip}</p>
-                            <p><strong>IP Suspicious:</strong> ${result.attendance.isIPSuspicious ? '⚠️ Yes' : '✅ No'}</p>
-                        </div>
-                    `;
-
-                    // Update debug info
-                    document.getElementById('calculatedDistance').textContent = 
-                        `${result.attendance.distance.toFixed(2)}m`;
-                    
+                
+                if (result.success) {
                     // Clear form
-                    document.getElementById('attendanceForm').reset();
+                    e.target.reset();
                     currentLocation = null;
-                    document.getElementById('locationInfo').style.display = 'none';
-                    submitBtn.disabled = true;
-
+                    document.getElementById('coordinates').textContent = 'Not captured yet';
+                    document.getElementById('accuracy').textContent = 'Not available';
+                    document.getElementById('submitBtn').disabled = true;
+                    
+                    // Show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'success-message';
+                    successDiv.textContent = `✅ ${result.message}`;
+                    e.target.parentNode.insertBefore(successDiv, e.target);
+                    
+                    setTimeout(() => successDiv.remove(), 5000);
                 } else {
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-error">
-                            <h3>❌ Error Marking Attendance</h3>
-                            <p><strong>Error:</strong> ${result.error}</p>
-                            ${result.details ? `<p><strong>Details:</strong> ${result.details}</p>` : ''}
-                        </div>
-                    `;
+                    throw new Error(result.message);
                 }
-
+                
             } catch (error) {
-                resultDiv.innerHTML = `
-                    <div class="alert alert-error">
-                        <h3>❌ Network Error</h3>
-                        <p><strong>Error:</strong> ${error.message}</p>
-                        <p>Please check your internet connection and try again.</p>
-                    </div>
-                `;
+                console.error('Error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = `❌ Error: ${error.message}`;
+                e.target.parentNode.insertBefore(errorDiv, e.target);
+                
+                setTimeout(() => errorDiv.remove(), 5000);
             } finally {
+                submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
-                submitBtn.textContent = '✅ Mark Attendance';
             }
-
-            resultDiv.style.display = 'block';
         });
 
-        // Initialize
+        // Get IP address on page load
         getIPAddress();
     </script>
 </body>

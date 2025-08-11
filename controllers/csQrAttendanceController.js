@@ -3,321 +3,197 @@ const CSSession = require('../models/CSSession');
 const CSStudent = require('../models/CSStudent');
 const QRCode = require('qrcode');
 
-// Tier 1 IP Security: IP History Tracking
-const updateIPHistory = async (regNumber, ip, userAgent, deviceInfo) => {
-    try {
-        const student = await CSStudent.findOne({ regNumber });
-        if (!student) return;
-
-        // Add new IP to history (keep last 10 IPs)
-        student.ipHistory.push({
-            ip,
-            timestamp: new Date(),
-            userAgent: userAgent || '',
-            deviceInfo: deviceInfo || ''
-        });
-
-        // Keep only last 10 IPs
-        if (student.ipHistory.length > 10) {
-            student.ipHistory = student.ipHistory.slice(-10);
-        }
-
-        await student.save();
-    } catch (error) {
-        console.error('Error updating IP history:', error);
-    }
-};
-
-// Tier 1 IP Security: Check for suspicious IP changes
-const checkIPSuspicious = async (regNumber, newIP) => {
-    try {
-        const student = await CSStudent.findOne({ regNumber });
-        if (!student || student.ipHistory.length === 0) return false;
-
-        // Get last 5 IPs
-        const recentIPs = student.ipHistory.slice(-5).map(h => h.ip);
-        
-        // If this is a completely new IP, flag as suspicious
-        if (!recentIPs.includes(newIP)) {
-            // Check if IP is from same subnet (basic check)
-            const isSameSubnet = recentIPs.some(oldIP => {
-                const oldSubnet = oldIP.split('.').slice(0, 3).join('.');
-                const newSubnet = newIP.split('.').slice(0, 3).join('.');
-                return oldSubnet === newSubnet;
-            });
-
-            return !isSameSubnet; // Suspicious if not from same subnet
-        }
-
-        return false;
-    } catch (error) {
-        console.error('Error checking IP suspicious:', error);
-        return false;
-    }
-};
-
-// Calculate distance between two coordinates (using Vincenty formula with fallbacks)
+// Calculate distance using Vincenty's inverse geodesic formula with fallbacks
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    try {
-        // Convert to numbers and validate
-        lat1 = Number(lat1);
-        lon1 = Number(lon1);
-        lat2 = Number(lat2);
-        lon2 = Number(lon2);
-
-        // Validate coordinate ranges
-        if (lat1 < -90 || lat1 > 90 || lat2 < -90 || lat2 > 90 ||
-            lon1 < -180 || lon1 > 180 || lon2 < -180 || lon2 > 180) {
-            throw new Error('Invalid coordinates');
-        }
-
-        // Vincenty's inverse geodesic formula (most accurate)
-        const a = 6378137; // Earth's radius in meters
-        const f = 1/298.257223563; // Flattening
-        const b = a * (1 - f);
+    // Vincenty's inverse geodesic formula (most accurate)
+    const toRadians = (degrees) => degrees * Math.PI / 180;
+    const toDegrees = (radians) => radians * 180 / Math.PI;
+    
+    const a = 6378137; // Earth's radius in meters (WGS84)
+    const f = 1 / 298.257223563; // WGS84 flattening
+    const b = a * (1 - f);
+    
+    const L = toRadians(lon2 - lon1);
+    const U1 = Math.atan((1 - f) * Math.tan(toRadians(lat1)));
+    const U2 = Math.atan((1 - f) * Math.tan(toRadians(lat2)));
+    const sinU1 = Math.sin(U1), cosU1 = Math.cos(U1);
+    const sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+    
+    let lambda = L;
+    let iterLimit = 100;
+    
+    let sinLambda, cosLambda, sinSigma, cosSigma, sigma, sinAlpha, cosSqAlpha, cos2SigmaM;
+    
+    do {
+        sinLambda = Math.sin(lambda);
+        cosLambda = Math.cos(lambda);
+        sinSigma = Math.sqrt((cosU2 * sinLambda) * (cosU2 * sinLambda) +
+                            (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) * (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda));
         
-        const L = (lon2 - lon1) * Math.PI / 180;
-        const U1 = Math.atan((1 - f) * Math.tan(lat1 * Math.PI / 180));
-        const U2 = Math.atan((1 - f) * Math.tan(lat2 * Math.PI / 180));
-        const sinU1 = Math.sin(U1);
-        const cosU1 = Math.cos(U1);
-        const sinU2 = Math.sin(U2);
-        const cosU2 = Math.cos(U2);
-
-        let lambda = L;
-        let iterLimit = 100;
-        let sinLambda, cosLambda, sinSigma, cosSigma, sigma, sinAlpha, cosSqAlpha, cos2SigmaM;
-
-        do {
-            sinLambda = Math.sin(lambda);
-            cosLambda = Math.cos(lambda);
-            sinSigma = Math.sqrt((cosU2 * sinLambda) * (cosU2 * sinLambda) +
-                               (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) *
-                               (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda));
-            
-            if (sinSigma === 0) return 0;
-
-            cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosLambda;
-            sigma = Math.atan2(sinSigma, cosSigma);
-            sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
-            cosSqAlpha = 1 - sinAlpha * sinAlpha;
-            cos2SigmaM = cosSigma - 2 * sinU1 * sinU2 / cosSqAlpha;
-
-            if (isNaN(cos2SigmaM)) cos2SigmaM = 0;
-
-            const C = f / 16 * cosSqAlpha * (4 + f * (4 - 3 * cosSqAlpha));
-            const lambdaP = lambda;
-            lambda = L + (1 - C) * f * sinAlpha *
-                    (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM)));
-
-            if (Math.abs(lambda - lambdaP) <= 1e-12) break;
-        } while (--iterLimit > 0);
-
-        if (iterLimit === 0) {
-            // Fallback to Haversine formula
-            const R = 6371000; // Earth's radius in meters
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                     Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        const uSq = cosSqAlpha * (a * a - b * b) / (b * b);
-        const A = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
-        const B = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
-        const deltaSigma = B * sinSigma * (cos2SigmaM + B / 4 * (cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM) -
-                               B / 6 * cos2SigmaM * (-3 + 4 * sinSigma * sinSigma) * (-3 + 4 * cos2SigmaM * cos2SigmaM)));
-
-        return b * A * (sigma - deltaSigma);
-    } catch (error) {
-        console.error('Error in distance calculation:', error);
-        // Final fallback to simple equirectangular projection
-        const R = 6371000;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const x = dLon * Math.cos((lat1 + lat2) * Math.PI / 360);
-        const y = dLat;
-        return Math.sqrt(x * x + y * y) * R;
+        if (sinSigma === 0) return 0;
+        
+        cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosLambda;
+        sigma = Math.atan2(sinSigma, cosSigma);
+        sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
+        cosSqAlpha = 1 - sinAlpha * sinAlpha;
+        cos2SigmaM = cosSigma - 2 * sinU1 * sinU2 / cosSqAlpha;
+        
+        if (isNaN(cos2SigmaM)) cos2SigmaM = 0;
+        
+        const C = f / 16 * cosSqAlpha * (4 + f * (4 - 3 * cosSqAlpha));
+        const lambdaP = lambda;
+        lambda = L + (1 - C) * f * sinAlpha * (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM)));
+        
+        if (Math.abs(lambda - lambdaP) <= 1e-12) break;
+    } while (--iterLimit > 0);
+    
+    if (iterLimit === 0) {
+        // Fallback to Haversine if Vincenty fails
+        const R = 6371000; // Earth's radius in meters
+        const dLat = toRadians(lat2 - lat1);
+        const dLon = toRadians(lon2 - lon1);
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
     }
+    
+    const uSq = cosSqAlpha * (a * a - b * b) / (b * b);
+    const A = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
+    const B = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
+    const deltaSigma = B * sinSigma * (cos2SigmaM + B / 4 * (cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM) -
+                                B / 6 * cos2SigmaM * (-3 + 4 * sinSigma * sinSigma) * (-3 + 4 * cos2SigmaM * cos2SigmaM)));
+    
+    return b * A * (sigma - deltaSigma);
 };
 
-// Validate location (check if student is within allowed distance)
+// Validate location with configurable max distance
 const validateLocation = (sessionCoords, studentCoords, maxDistance = null) => {
-    try {
-        const distance = calculateDistance(
-            sessionCoords.latitude,
-            sessionCoords.longitude,
-            studentCoords.latitude,
-            studentCoords.longitude
-        );
-
-        // Use environment variable or default
-        const allowedDistance = maxDistance || process.env.MAX_ATTENDANCE_DISTANCE || 200;
-        
-        // Subtract GPS accuracy from calculated distance for fair comparison
-        const adjustedDistance = Math.max(0, distance - (studentCoords.accuracy || 0));
-        
-        console.log(`CS Attendance - Distance: ${adjustedDistance.toFixed(2)}m, Max: ${allowedDistance}m, Accuracy: ${studentCoords.accuracy || 0}m`);
-        
-        return {
-            isWithinRange: adjustedDistance <= allowedDistance,
-            distance: adjustedDistance,
-            maxDistance: allowedDistance
-        };
-    } catch (error) {
-        console.error('Error in location validation:', error);
-        return {
-            isWithinRange: false,
-            distance: Infinity,
-            maxDistance: maxDistance || 200
-        };
-    }
+    if (!sessionCoords || !studentCoords) return false;
+    
+    const distance = calculateDistance(
+        sessionCoords.latitude, sessionCoords.longitude,
+        studentCoords.latitude, studentCoords.longitude
+    );
+    
+    // Use environment variable or default to 300m
+    const maxAllowedDistance = maxDistance || process.env.MAX_ATTENDANCE_DISTANCE || 300;
+    
+    // Subtract GPS accuracy from max distance for more lenient validation
+    const adjustedMaxDistance = maxAllowedDistance - (studentCoords.accuracy || 0);
+    
+    return {
+        isValid: distance <= adjustedMaxDistance,
+        distance: Math.round(distance),
+        maxAllowed: adjustedMaxDistance
+    };
 };
 
 // Mark attendance for CS student
 const markAttendance = async (req, res) => {
     try {
-        const { session_id, reg_number, student_name, batch_name, latitude, longitude, accuracy, location, notes } = req.body;
+        const { session_id, reg_number, student_name, batch_name, latitude, longitude, accuracy } = req.body;
         
+        if (!session_id || !reg_number || !student_name || !latitude || !longitude) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
         // Get client IP address
         const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
         const userAgent = req.headers['user-agent'] || '';
-        
-        console.log(`CS Attendance Request - Session: ${session_id}, Student: ${reg_number}, IP: ${clientIP}`);
 
-        // Validate required fields
-        if (!session_id || !reg_number || !student_name || !batch_name || !latitude || !longitude || !location) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['session_id', 'reg_number', 'student_name', 'batch_name', 'latitude', 'longitude', 'location']
-            });
-        }
-
-        // Check if session exists and is active
+        // Validate session exists and is active
         const session = await CSSession.findOne({ sessionId: session_id, isActive: true });
         if (!session) {
-            return res.status(404).json({
-                error: 'Session not found or inactive',
-                sessionId: session_id
+            return res.status(400).json({
+                success: false,
+                message: 'Session not found or already ended'
             });
         }
 
-        // Check if this student has already marked attendance for this session (from any device/IP)
-        const existingStudentAttendance = await CSAttendance.findOne({ sessionId: session_id, regNumber: reg_number });
-        if (existingStudentAttendance) {
-            return res.status(403).json({
-                error: 'Attendance already marked for this student in this session',
-                attendance: existingStudentAttendance
+        // Validate student exists in CS2023 collection
+        const student = await CSStudent.findOne({ regNumber: reg_number });
+        if (!student) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student not found in CS2023 batch'
             });
         }
 
-        // Check for existing attendance from same IP (additional security)
-        const existingAttendanceFromIP = await CSAttendance.findOne({ sessionId: session_id, ip: clientIP });
-        if (existingAttendanceFromIP) {
-            return res.status(403).json({
-                error: 'Attendance already marked from this IP address for this session',
-                attendance: existingAttendanceFromIP
+        // Check for duplicate attendance
+        const existingAttendance = await CSAttendance.findOne({ 
+            sessionId: session_id, 
+            regNumber: reg_number 
+        });
+        
+        if (existingAttendance) {
+            return res.status(400).json({
+                success: false,
+                message: 'Attendance already marked for this student in this session'
             });
         }
 
         // Validate location
-        const locationValidation = validateLocation(
-            session.coordinates,
-            { latitude, longitude, accuracy: accuracy || 0 },
-            session.maxDistance
-        );
+        const studentCoords = { latitude: parseFloat(latitude), longitude: parseFloat(longitude), accuracy: parseFloat(accuracy) || 0 };
+        const locationValidation = validateLocation(session.coordinates, studentCoords, session.maxDistance);
 
-        // Tier 1 IP Security: Check for suspicious IP changes
-        const isIPSuspicious = await checkIPSuspicious(reg_number, clientIP);
-        
+        if (!locationValidation.isValid) {
+            return res.status(400).json({
+                success: false,
+                message: `Student is ${locationValidation.distance}m away from class location (max: ${locationValidation.maxAllowed}m)`
+            });
+        }
+
+        // Use provided batch_name or default to CS2023 for existing students
+        const actualBatchName = batch_name || 'CS2023';
+
         // Create attendance record
         const attendance = new CSAttendance({
             sessionId: session_id,
             regNumber: reg_number,
             studentName: student_name,
-            batchName: batch_name,
+            batchName: actualBatchName,
             ip: clientIP,
             userAgent: userAgent,
-            coordinates: {
-                latitude: Number(latitude),
-                longitude: Number(longitude),
-                accuracy: Number(accuracy) || 0
-            },
-            location: location,
+            coordinates: studentCoords,
+            location: `${latitude}, ${longitude}`,
             distance: locationValidation.distance,
-            isWithinRange: locationValidation.isWithinRange,
-            deviceInfo: userAgent,
-            notes: notes || ''
+            isWithinRange: true,
+            deviceInfo: `${userAgent} | IP: ${clientIP}`,
+            notes: 'CS Attendance'
         });
 
         await attendance.save();
 
-        // Update IP history for Tier 1 security
-        await updateIPHistory(reg_number, clientIP, userAgent, userAgent);
-
         // Update session attendance count
-        await CSSession.findOneAndUpdate(
-            { sessionId: session_id },
-            { $inc: { attendanceCount: 1 } }
-        );
+        await CSSession.findByIdAndUpdate(session._id, {
+            $inc: { attendanceCount: 1 }
+        });
 
-        // Update student's last attendance and total count
-        await CSStudent.findOneAndUpdate(
-            { regNumber: reg_number },
-            { 
-                lastAttendance: new Date(),
-                $inc: { totalAttendance: 1 }
-            }
-        );
-
-        console.log(`CS Attendance marked successfully - Session: ${session_id}, Student: ${reg_number}, IP: ${clientIP}, Distance: ${locationValidation.distance.toFixed(2)}m`);
-
-        res.status(200).json({
+        res.json({
             success: true,
             message: 'Attendance marked successfully',
-            attendance: {
-                id: attendance._id,
-                sessionId: attendance.sessionId,
-                regNumber: attendance.regNumber,
-                studentName: attendance.studentName,
+            data: {
+                studentName: student_name,
+                regNumber: reg_number,
+                sessionId: session_id,
                 timestamp: attendance.timestamp,
-                location: attendance.location,
-                distance: attendance.distance,
-                isWithinRange: attendance.isWithinRange,
-                ip: attendance.ip,
-                isIPSuspicious: isIPSuspicious
-            },
-            session: {
-                batchName: session.batchName,
-                date: session.date,
-                timeSlot: session.timeSlot,
-                location: session.location
-            },
-            security: {
-                ipTracked: true,
-                ipSuspicious: isIPSuspicious,
-                locationValidated: true,
-                duplicatePrevented: true
+                distance: locationValidation.distance,
+                ipAddress: clientIP,
+                securityStatus: 'Tier 1: IP captured and tracked'
             }
         });
 
     } catch (error) {
         console.error('Error marking CS attendance:', error);
-        
-        // Handle duplicate key error
-        if (error.code === 11000) {
-            return res.status(403).json({
-                error: 'Attendance already marked for this student in this session',
-                details: 'Duplicate key constraint violation'
-            });
-        }
-
         res.status(500).json({
-            error: 'Internal server error',
-            message: error.message
+            success: false,
+            message: 'Internal server error',
+            error: error.message
         });
     }
 };
@@ -325,24 +201,24 @@ const markAttendance = async (req, res) => {
 // Get all CS sessions
 const getAllSessions = async (req, res) => {
     try {
-        const { showInactive = false } = req.query;
+        const { showEnded = 'false' } = req.query;
         
         let query = {};
-        if (!showInactive) {
+        if (showEnded === 'false') {
             query.isActive = true;
         }
-
+        
         const sessions = await CSSession.find(query).sort({ createdAt: -1 });
         
-        res.status(200).json({
+        res.json({
             success: true,
-            sessions: sessions
+            data: sessions
         });
     } catch (error) {
-        console.error('Error getting CS sessions:', error);
+        console.error('Error fetching CS sessions:', error);
         res.status(500).json({
-            error: 'Internal server error',
-            message: error.message
+            success: false,
+            message: 'Internal server error'
         });
     }
 };
@@ -351,63 +227,63 @@ const getAllSessions = async (req, res) => {
 const createSession = async (req, res) => {
     try {
         const { batchName, date, timeSlot, location, latitude, longitude, maxDistance, notes } = req.body;
-
+        
         if (!batchName || !date || !timeSlot || !location || !latitude || !longitude) {
             return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['batchName', 'date', 'timeSlot', 'location', 'latitude', 'longitude']
+                success: false,
+                message: 'Missing required fields'
             });
         }
 
+        // Generate unique session ID
         const sessionId = `CS_${batchName}_${Date.now()}`;
         
         // Generate QR code
         const qrData = JSON.stringify({
-            sessionId: sessionId,
-            batchName: batchName,
-            date: date,
-            timeSlot: timeSlot,
-            location: location,
-            type: 'cs'
+            sessionId,
+            batchName,
+            date,
+            timeSlot,
+            location,
+            coordinates: { latitude: parseFloat(latitude), longitude: parseFloat(longitude) },
+            maxDistance: parseFloat(maxDistance) || 200
         });
-
+        
         const qrCode = await QRCode.toDataURL(qrData);
-
+        
+        // Get student count for this batch
+        const studentCount = await CSStudent.countDocuments();
+        
         const session = new CSSession({
-            sessionId: sessionId,
-            batchName: batchName,
+            sessionId,
+            batchName,
             date: new Date(date),
-            timeSlot: timeSlot,
-            location: location,
-            coordinates: {
-                latitude: Number(latitude),
-                longitude: Number(longitude)
-            },
-            maxDistance: maxDistance || process.env.MAX_ATTENDANCE_DISTANCE || 200,
+            timeSlot,
+            location,
+            coordinates: { latitude: parseFloat(latitude), longitude: parseFloat(longitude) },
+            maxDistance: parseFloat(maxDistance) || 200,
             notes: notes || '',
-            qrCode: qrCode
+            qrCode,
+            totalStudents: studentCount
         });
 
         await session.save();
 
-        res.status(201).json({
+        res.json({
             success: true,
             message: 'CS Session created successfully',
-            session: {
-                sessionId: session.sessionId,
-                batchName: session.batchName,
-                date: session.date,
-                timeSlot: session.timeSlot,
-                location: session.location,
-                qrCode: session.qrCode
+            data: {
+                sessionId,
+                qrCode,
+                sessionDetails: session
             }
         });
 
     } catch (error) {
         console.error('Error creating CS session:', error);
         res.status(500).json({
-            error: 'Internal server error',
-            message: error.message
+            success: false,
+            message: 'Internal server error'
         });
     }
 };
@@ -416,31 +292,31 @@ const createSession = async (req, res) => {
 const endSession = async (req, res) => {
     try {
         const { sessionId } = req.params;
-
+        
         const session = await CSSession.findOneAndUpdate(
-            { sessionId: sessionId },
+            { sessionId, isActive: true },
             { isActive: false },
             { new: true }
         );
 
         if (!session) {
             return res.status(404).json({
-                error: 'Session not found',
-                sessionId: sessionId
+                success: false,
+                message: 'Session not found or already ended'
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
             message: 'CS Session ended successfully',
-            session: session
+            data: session
         });
 
     } catch (error) {
         console.error('Error ending CS session:', error);
         res.status(500).json({
-            error: 'Internal server error',
-            message: error.message
+            success: false,
+            message: 'Internal server error'
         });
     }
 };
@@ -449,85 +325,76 @@ const endSession = async (req, res) => {
 const deleteSession = async (req, res) => {
     try {
         const { sessionId } = req.params;
-
-        const session = await CSSession.findOneAndDelete({ sessionId: sessionId });
-
+        
+        // Delete session
+        const session = await CSSession.findOneAndDelete({ sessionId });
+        
         if (!session) {
             return res.status(404).json({
-                error: 'Session not found',
-                sessionId: sessionId
+                success: false,
+                message: 'Session not found'
             });
         }
 
-        // Also delete all attendance records for this session
-        await CSAttendance.deleteMany({ sessionId: sessionId });
+        // Delete all attendance records for this session
+        await CSAttendance.deleteMany({ sessionId });
 
-        res.status(200).json({
+        res.json({
             success: true,
-            message: 'CS Session deleted permanently',
-            session: session
+            message: 'CS Session deleted successfully',
+            data: { sessionId }
         });
 
     } catch (error) {
         console.error('Error deleting CS session:', error);
         res.status(500).json({
-            error: 'Internal server error',
-            message: error.message
+            success: false,
+            message: 'Internal server error'
         });
     }
 };
 
-// Get attendance for a specific CS session
+// Get attendance for a specific session
 const getSessionAttendance = async (req, res) => {
     try {
         const { sessionId } = req.params;
-
-        const attendance = await CSAttendance.find({ sessionId: sessionId }).sort({ timestamp: -1 });
-
-        res.status(200).json({
+        
+        const attendance = await CSAttendance.find({ sessionId }).sort({ timestamp: -1 });
+        
+        res.json({
             success: true,
-            sessionId: sessionId,
-            attendance: attendance,
-            count: attendance.length
+            data: attendance
         });
 
     } catch (error) {
-        console.error('Error getting CS session attendance:', error);
+        console.error('Error fetching session attendance:', error);
         res.status(500).json({
-            error: 'Internal server error',
-            message: error.message
+            success: false,
+            message: 'Internal server error'
         });
     }
 };
 
-// Get CS student IP history (for security monitoring)
+// Get student IP history (for security monitoring)
 const getStudentIPHistory = async (req, res) => {
     try {
         const { regNumber } = req.params;
-
-        const student = await CSStudent.findOne({ regNumber });
-        if (!student) {
-            return res.status(404).json({
-                error: 'Student not found',
-                regNumber: regNumber
-            });
-        }
-
-        res.status(200).json({
+        
+        const attendance = await CSAttendance.find({ regNumber })
+            .select('ip userAgent timestamp deviceInfo')
+            .sort({ timestamp: -1 })
+            .limit(10);
+        
+        res.json({
             success: true,
-            student: {
-                regNumber: student.regNumber,
-                name: student.name,
-                batchName: student.batchName
-            },
-            ipHistory: student.ipHistory.sort((a, b) => b.timestamp - a.timestamp)
+            data: attendance
         });
 
     } catch (error) {
-        console.error('Error getting CS student IP history:', error);
+        console.error('Error fetching student IP history:', error);
         res.status(500).json({
-            error: 'Internal server error',
-            message: error.message
+            success: false,
+            message: 'Internal server error'
         });
     }
 };

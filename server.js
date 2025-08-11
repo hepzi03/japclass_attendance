@@ -86,18 +86,40 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/japclass_attendance', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB');
-})
-.catch((err) => {
-  console.error('❌ MongoDB connection error:', err);
-  process.exit(1);
-});
+// Database connections
+const connectDatabases = async () => {
+  try {
+    // Main database connection (Japanese Class)
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/japclass_attendance', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('✅ Connected to main MongoDB (Japanese Class)');
+    
+    // CS database connection
+    const csConnection = mongoose.createConnection('mongodb+srv://admin:qwerty12345@cluster0.xham8.mongodb.net/CS?retryWrites=true&w=majority&appName=Cluster0', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    
+    csConnection.on('connected', () => {
+      console.log('✅ Connected to CS MongoDB');
+    });
+    
+    csConnection.on('error', (err) => {
+      console.error('❌ CS MongoDB connection error:', err);
+    });
+    
+    // Make CS connection available globally for CS models
+    global.csConnection = csConnection;
+    
+  } catch (err) {
+    console.error('❌ Database connection error:', err);
+    process.exit(1);
+  }
+};
+
+connectDatabases();
 
 const PORT = process.env.PORT || 5000;
 
