@@ -45,6 +45,24 @@
             opacity: 0.9;
         }
 
+        .dashboard-switcher {
+            margin-top: 20px;
+        }
+
+        .dashboard-switcher .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            margin: 0 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-switcher .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
         .card {
             background: white;
             border-radius: 15px;
@@ -424,6 +442,11 @@
         <div class="header">
             <h1><i class="fas fa-qrcode"></i> QR Attendance System</h1>
             <p>Teacher Dashboard - Create and manage attendance sessions</p>
+            <div class="dashboard-switcher">
+                <a href="cs-dashboard.html" class="btn">
+                    🖥️ Switch to CS Dashboard
+                </a>
+            </div>
         </div>
 
         <div class="tabs">

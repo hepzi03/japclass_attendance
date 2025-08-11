@@ -283,6 +283,24 @@
             font-size: 0.9rem;
         }
 
+        .dashboard-switcher {
+            margin-top: 20px;
+        }
+
+        .dashboard-switcher .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            margin: 0 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-switcher .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -359,6 +377,11 @@
         <div class="header">
             <h1>🎓 CS Attendance Dashboard</h1>
             <p>Manage attendance for Computer Science batches</p>
+            <div class="dashboard-switcher">
+                <a href="index.html" class="btn">
+                    🎌 Switch to Japanese Class Dashboard
+                </a>
+            </div>
         </div>
 
         <div class="nav-tabs">
