@@ -142,6 +142,18 @@
             margin-bottom: 15px;
         }
 
+        /* Truncation utility for long single-line values */
+        .truncate {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Ensure the result page Session ID also truncates */
+        #sessionId { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
         .session-status-badge {
             padding: 4px 12px;
             border-radius: 20px;
@@ -779,8 +791,8 @@
                                 </div>
                                 <div class="info-grid">
                                     <div class="info-item">
-                                        <strong>Session ID:</strong><br>
-                                        ${session.sessionId}
+                                        <strong>Session ID:</strong>
+                                        <span class="truncate">${session.sessionId}</span>
                                     </div>
                                     <div class="info-item">
                                         <strong>Date:</strong><br>
