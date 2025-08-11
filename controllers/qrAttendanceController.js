@@ -758,8 +758,13 @@ const getSessionAttendance = async (req, res) => {
 // Get all sessions with attendance data
 const getAllSessions = async (req, res) => {
   try {
-    const { batchId, date } = req.query;
-    let query = { isActive: true };
+    const { batchId, date, showInactive } = req.query;
+    let query = {};
+    
+    // Show all sessions by default, or filter by active status if specified
+    if (showInactive === 'false') {
+      query.isActive = true;
+    }
 
     if (batchId) query.batchId = batchId;
     if (date) query.date = { $gte: new Date(date), $lt: new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000) };
@@ -958,7 +963,7 @@ const endSession = async (req, res) => {
   }
 };
 
-// Delete a session
+// Delete a session permanently
 const deleteSession = async (req, res) => {
   try {
     const { session_id } = req.params;
@@ -975,16 +980,12 @@ const deleteSession = async (req, res) => {
     // Delete all attendance records for this session
     await Attendance.deleteMany({ sessionId: session_id });
 
-    // Delete the session (soft delete by setting isActive to false)
-    await Session.findOneAndUpdate(
-      { sessionId: session_id },
-      { isActive: false },
-      { new: true }
-    );
+    // Permanently delete the session
+    await Session.findOneAndDelete({ sessionId: session_id });
 
     res.json({
       success: true,
-      message: 'Session deleted successfully'
+      message: 'Session permanently deleted successfully'
     });
   } catch (error) {
     console.error('Delete session error:', error);
