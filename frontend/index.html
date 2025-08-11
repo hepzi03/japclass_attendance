@@ -148,22 +148,6 @@
             margin-bottom: 15px;
         }
 
-        /* Checkbox styling */
-        input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: #667eea;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-weight: 500;
-            color: #555;
-        }
-
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -422,12 +406,6 @@
         <div id="sessions" class="tab-content">
             <div class="card">
                 <h2><i class="fas fa-list"></i> Recent Sessions</h2>
-                <div style="margin-bottom: 15px;">
-                    <label class="form-group" style="margin-bottom: 0;">
-                        <input type="checkbox" id="showEndedSessions" onchange="loadSessions()" style="margin-right: 8px;">
-                        Show ended sessions
-                    </label>
-                </div>
                 <div id="sessionsList" class="loading">
                     Loading sessions...
                 </div>
@@ -646,10 +624,7 @@
         // Load sessions
         async function loadSessions() {
             try {
-                const showEnded = document.getElementById('showEndedSessions').checked;
-                const url = showEnded ? `${API_BASE}/qr/sessions` : `${API_BASE}/qr/sessions?showEnded=false`;
-                
-                const response = await fetch(url);
+                const response = await fetch(`${API_BASE}/qr/sessions`);
                 const data = await response.json();
 
                 const sessionsList = document.getElementById('sessionsList');
@@ -673,14 +648,8 @@
                                         ${session.timeSlot}
                                     </div>
                                     <div class="info-item">
-                                        <strong>Status:</strong><br>
-                                        <span style="color: ${session.isActive ? '#28a745' : '#dc3545'}; font-weight: bold;">
-                                            ${session.isActive ? '🟢 Active' : '🔴 Ended'}
-                                        </span>
-                                    </div>
-                                    <div class="info-item">
                                         <strong>Attendance:</strong><br>
-                                        <span style="color: #28a745;">${session.attendanceCount} present</span>
+                                        ${session.attendanceCount} students
                                     </div>
                                 </div>
                                 <div style="margin-top: 15px;">
@@ -724,30 +693,21 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Create a detailed attendance report
-                    let report = `📊 ATTENDANCE REPORT\n`;
-                    report += `Batch: ${data.sessionInfo.batchName}\n`;
-                    report += `Date: ${new Date(data.sessionInfo.date).toLocaleDateString()}\n`;
-                    report += `Time: ${data.sessionInfo.timeSlot}\n`;
-                    report += `Total Students: ${data.sessionInfo.totalStudents}\n`;
-                    report += `Present: ${data.sessionInfo.presentCount} | Absent: ${data.sessionInfo.absentCount}\n\n`;
-                    
-                    report += `STUDENTS:\n`;
-                    report += `─────────\n`;
-                    
-                    data.attendance.forEach((record, index) => {
-                        const status = record.status === 'Present' ? '✅' : '❌';
-                        const time = record.timestamp ? new Date(record.timestamp).toLocaleTimeString() : 'N/A';
-                        report += `${index + 1}. ${record.name} (${record.regNumber})\n`;
-                        report += `   Status: ${status} ${record.status}\n`;
-                        if (record.status === 'Present') {
-                            report += `   Time: ${time}\n`;
-                        }
-                        report += `\n`;
-                    });
+                    const attendanceHtml = data.attendance.length > 0 ? 
+                        data.attendance.map(record => `
+                            <div class="attendance-item">
+                                <div class="student-info">
+                                    <div class="student-name">${record.name}</div>
+                                    <div class="student-reg">${record.regNumber}</div>
+                                </div>
+                                <div class="attendance-time">
+                                    ${new Date(record.timestamp).toLocaleTimeString()}
+                                </div>
+                            </div>
+                        `).join('') : '<div class="loading">No attendance records found.</div>';
 
-                    // Show in a more readable format
-                    alert(report);
+                    // Create modal or show in a new section
+                    alert(`Attendance for session ${sessionId}:\n\n${data.attendance.map(r => `${r.name} (${r.regNumber}) - ${new Date(r.timestamp).toLocaleTimeString()}`).join('\n')}`);
                 } else {
                     alert('Error loading attendance: ' + data.error);
                 }

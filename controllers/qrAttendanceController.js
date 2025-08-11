@@ -649,54 +649,12 @@ const getSessionAttendance = async (req, res) => {
   try {
     const { session_id } = req.params;
 
-    // Get the session to find the batch
-    const session = await Session.findOne({ sessionId: session_id });
-    if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
-    }
-
-    // Get all students from the batch by batchName
-    const batchStudents = await Student.find({ batchName: session.batchName }).sort({ name: 1 });
-    console.log('🔍 Found students for batch:', session.batchName, 'Count:', batchStudents.length);
-    console.log('📚 Students:', batchStudents.map(s => ({ name: s.name, regNumber: s.regNumber, batchName: s.batchName })));
-    
-    // Get attendance records for this session
-    const attendanceRecords = await Attendance.find({ sessionId: session_id });
-    console.log('📊 Found attendance records for session:', session_id, 'Count:', attendanceRecords.length);
-    
-    // Create a map of students who marked attendance
-    const attendanceMap = new Map();
-    attendanceRecords.forEach(record => {
-      attendanceMap.set(record.regNumber, record);
-    });
-
-    // Create complete attendance report with all batch students
-    const completeAttendance = batchStudents.map(student => {
-      const attendanceRecord = attendanceMap.get(student.regNumber);
-      return {
-        name: student.name,
-        regNumber: student.regNumber,
-        batchName: student.batchName,
-        status: attendanceRecord ? 'Present' : 'Absent',
-        timestamp: attendanceRecord ? attendanceRecord.timestamp : null,
-        deviceInfo: attendanceRecord ? attendanceRecord.deviceInfo : null,
-        location: attendanceRecord ? attendanceRecord.location : null,
-        ip: attendanceRecord ? attendanceRecord.ip : null
-      };
-    });
+    const attendance = await Attendance.find({ sessionId: session_id })
+      .sort({ timestamp: 1 });
 
     res.json({
       success: true,
-      attendance: completeAttendance,
-      sessionInfo: {
-        sessionId: session.sessionId,
-        batchName: session.batchName,
-        date: session.date,
-        timeSlot: session.timeSlot,
-        totalStudents: batchStudents.length,
-        presentCount: attendanceRecords.length,
-        absentCount: batchStudents.length - attendanceRecords.length
-      }
+      attendance
     });
   } catch (error) {
     console.error('Get attendance error:', error);
@@ -707,13 +665,8 @@ const getSessionAttendance = async (req, res) => {
 // Get all sessions with attendance data
 const getAllSessions = async (req, res) => {
   try {
-    const { batchId, date, showEnded } = req.query;
-    let query = {};
-    
-    // Only filter by isActive if explicitly requested, otherwise show all sessions
-    if (showEnded === 'false') {
-      query.isActive = true;
-    }
+    const { batchId, date } = req.query;
+    let query = { isActive: true };
 
     if (batchId) query.batchId = batchId;
     if (date) query.date = { $gte: new Date(date), $lt: new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000) };
@@ -748,46 +701,32 @@ const exportAttendanceExcel = async (req, res) => {
   try {
     const { session_id } = req.params;
 
-    // Get the session to find the batch
+    const attendance = await Attendance.find({ sessionId: session_id })
+      .sort({ timestamp: 1 });
+
+    if (attendance.length === 0) {
+      return res.status(404).json({ error: 'No attendance records found' });
+    }
+
     const session = await Session.findOne({ sessionId: session_id });
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Get all students from the batch by batchName
-    const batchStudents = await Student.find({ batchName: session.batchName }).sort({ name: 1 });
-    
-    // Get attendance records for this session
-    const attendanceRecords = await Attendance.find({ sessionId: session_id });
-    
-    // Create a map of students who marked attendance
-    const attendanceMap = new Map();
-    attendanceRecords.forEach(record => {
-      attendanceMap.set(record.regNumber, record);
-    });
-
-    // Create Excel data with all batch students
+    // Create Excel data
     const excelData = [
-      ['Name', 'Registration Number', 'Batch', 'Date', 'Time', 'Status', 'Device Info', 'Timestamp', 'Location']
+      ['Name', 'Registration Number', 'Batch', 'Date', 'Time', 'Device Info', 'Timestamp']
     ];
 
-    batchStudents.forEach(student => {
-      const attendanceRecord = attendanceMap.get(student.regNumber);
-      const status = attendanceRecord ? 'Present' : 'Absent';
-      const timestamp = attendanceRecord ? attendanceRecord.timestamp.toLocaleString() : 'N/A';
-      const deviceInfo = attendanceRecord ? `${attendanceRecord.deviceInfo.browser} on ${attendanceRecord.deviceInfo.platform}` : 'N/A';
-      const location = attendanceRecord ? `${attendanceRecord.location.latitude}, ${attendanceRecord.location.longitude}` : 'N/A';
-      
+    attendance.forEach(record => {
       excelData.push([
-        student.name,
-        student.regNumber,
-        session.batchName,
+        record.name,
+        record.regNumber,
+        record.batchId,
         session.date.toLocaleDateString(),
         session.timeSlot,
-        status,
-        deviceInfo,
-        timestamp,
-        location
+        `${record.deviceInfo.browser} on ${record.deviceInfo.platform}`,
+        record.timestamp.toLocaleString()
       ]);
     });
 
@@ -815,25 +754,17 @@ const exportAttendancePDF = async (req, res) => {
   try {
     const { session_id } = req.params;
 
-    // Get the session to find the batch
+    const attendance = await Attendance.find({ sessionId: session_id })
+      .sort({ timestamp: 1 });
+
+    if (attendance.length === 0) {
+      return res.status(404).json({ error: 'No attendance records found' });
+    }
+
     const session = await Session.findOne({ sessionId: session_id });
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
-
-    // Get all students from the batch by batchName
-    const batchStudents = await Student.find({ batchName: session.batchName }).sort({ name: 1 });
-    console.log('📄 PDF Export - Found students for batch:', session.batchName, 'Count:', batchStudents.length);
-    
-    // Get attendance records for this session
-    const attendanceRecords = await Attendance.find({ sessionId: session_id });
-    console.log('📄 PDF Export - Found attendance records for session:', session_id, 'Count:', attendanceRecords.length);
-    
-    // Create a map of students who marked attendance
-    const attendanceMap = new Map();
-    attendanceRecords.forEach(record => {
-      attendanceMap.set(record.regNumber, record);
-    });
 
     const PDFDocument = require('pdfkit');
     const doc = new PDFDocument();
@@ -852,8 +783,8 @@ const exportAttendancePDF = async (req, res) => {
     doc.moveDown();
 
     // Add table headers
-    const headers = ['Name', 'Reg Number', 'Status', 'Time'];
-    const colWidths = [200, 150, 100, 120];
+    const headers = ['Name', 'Reg Number', 'Time'];
+    const colWidths = [200, 150, 120];
     let y = doc.y;
 
     headers.forEach((header, i) => {
@@ -863,22 +794,17 @@ const exportAttendancePDF = async (req, res) => {
 
     y += 25;
 
-    // Add attendance data for all batch students
-    batchStudents.forEach((student, index) => {
+    // Add attendance data
+    attendance.forEach((record, index) => {
       if (y > 700) {
         doc.addPage();
         y = 50;
       }
 
-      const attendanceRecord = attendanceMap.get(student.regNumber);
-      const status = attendanceRecord ? 'Present' : 'Absent';
-      const time = attendanceRecord ? attendanceRecord.timestamp.toLocaleTimeString() : 'N/A';
-
       const data = [
-        student.name,
-        student.regNumber,
-        status,
-        time
+        record.name,
+        record.regNumber,
+        record.timestamp.toLocaleTimeString()
       ];
 
       data.forEach((text, i) => {
