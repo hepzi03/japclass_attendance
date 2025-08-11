@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System - Choose Your Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-container {
+            text-align: center;
+            max-width: 800px;
+            padding: 40px 20px;
+        }
+
+        .header {
+            margin-bottom: 50px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .dashboard-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .card-description {
+            font-size: 1.1rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .card-stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .card-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .card-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .japanese-card .card-icon {
+            color: #e74c3c;
+        }
+
+        .japanese-card .card-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .japanese-card .card-button:hover {
+            box-shadow: 0 10px 25px rgba(231, 76, 60, 0.4);
+        }
+
+        .cs-card .card-icon {
+            color: #3498db;
+        }
+
+        .cs-card .card-button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .cs-card .card-button:hover {
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.4);
+        }
+
+        .footer {
+            margin-top: 50px;
+            color: white;
+            opacity: 0.8;
+        }
+
+        .footer p {
+            font-size: 1rem;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 2.5rem;
+            }
+
+            .header p {
+                font-size: 1.1rem;
+            }
+
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .dashboard-card {
+                padding: 30px 20px;
+            }
+
+            .card-icon {
+                font-size: 3rem;
+            }
+
+            .card-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Animation for cards */
+        .dashboard-card {
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .dashboard-card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .dashboard-card:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1>🎓 Attendance System</h1>
+            <p>Choose your dashboard to manage attendance for different departments</p>
+        </div>
+
+        <div class="dashboard-cards">
+            <!-- Japanese Class Dashboard Card -->
+            <div class="dashboard-card japanese-card" onclick="goToJapaneseClass()">
+                <span class="card-icon">🎌</span>
+                <h2 class="card-title">Japanese Class</h2>
+                <p class="card-description">
+                    Manage attendance for Japanese language classes with QR codes, 
+                    location validation, and comprehensive reporting.
+                </p>
+                
+                <div class="card-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Batches:</span>
+                        <span class="stat-value">11 Active</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Students:</span>
+                        <span class="stat-value">409 Total</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Levels:</span>
+                        <span class="stat-value">N3, N4, N5</span>
+                    </div>
+                </div>
+
+                <button class="card-button" onclick="goToJapaneseClass()">
+                    🚀 Open Japanese Class Dashboard
+                </button>
+            </div>
+
+            <!-- CS Dashboard Card -->
+            <div class="dashboard-card cs-card" onclick="goToCS()">
+                <span class="card-icon">💻</span>
+                <h2 class="card-title">Computer Science</h2>
+                <p class="card-description">
+                    Manage attendance for Computer Science batches with dedicated 
+                    session management and student tracking.
+                </p>
+                
+                <div class="card-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Batches:</span>
+                        <span class="stat-value">3 Planned</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Students:</span>
+                        <span class="stat-value">63 in CS2023</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Levels:</span>
+                        <span class="stat-value">CS2023, CS2024, CS2025</span>
+                    </div>
+                </div>
+
+                <button class="card-button" onclick="goToCS()">
+                    🚀 Open CS Dashboard
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🎯 Select a dashboard above to get started</p>
+        </div>
+    </div>
+
+    <script>
+        function goToJapaneseClass() {
+            window.location.href = 'index.html';
+        }
+
+        function goToCS() {
+            window.location.href = 'cs-dashboard.html';
+        }
+
+        // Add click event listeners to entire cards
+        document.querySelectorAll('.dashboard-card').forEach(card => {
+            card.addEventListener('click', function() {
+                // Add a subtle click effect
+                this.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '1' || e.key === 'Digit1') {
+                goToJapaneseClass();
+            } else if (e.key === '2' || e.key === 'Digit2') {
+                goToCS();
+            }
+        });
+    </script>
+</body>
+</html>
