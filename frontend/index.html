@@ -384,6 +384,27 @@
             border-left: 3px solid #43a047;
         }
         }
+        /* Fix overflow/alignment for portrait mobile */
+        .session-header { flex-wrap: wrap; gap: 8px; }
+        .info-grid { width: 100%; }
+        .info-item { min-width: 0; }
+        .info-item strong { display: block; }
+        .info-item span, .info-item small { display: block; word-break: break-word; overflow-wrap: anywhere; }
+
+        @media (max-width: 768px) {
+            .card, .session-info { max-width: 100%; }
+            .session-header h3 { flex: 1 1 100%; margin: 0 0 4px; }
+            .info-item { padding: 12px; }
+            .info-item strong { font-size: 0.95rem; line-height: 1.2; margin-bottom: 4px; }
+            .info-item span, .info-item small { font-size: 0.95rem; }
+            /* Group the action buttons under sessions cleanly on mobile */
+            .session-info > div[style*="margin-top: 15px"],
+            .session-actions { display: grid !important; grid-template-columns: 1fr; gap: 10px; }
+            .session-info > div[style*="margin-top: 15px"] .btn,
+            .session-actions .btn { width: 100%; }
+            /* Avoid any horizontal scroll */
+            body, html { overflow-x: hidden; }
+        }
     </style>
 </head>
 <body>
