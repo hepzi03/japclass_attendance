@@ -3,8 +3,9 @@ require('dotenv').config();
 
 async function checkDatabase() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/japclass_attendance');
+    await mongoose.connect('mongodb+srv://admin:qwerty12345@cluster0.xham8.mongodb.net/CS?retryWrites=true&w=majority&appName=Cluster0');
     console.log('✅ Connected to MongoDB');
+    console.log(`📊 Database name: ${mongoose.connection.db.databaseName}`);
 
     // List all collections
     const collections = await mongoose.connection.db.listCollections().toArray();
