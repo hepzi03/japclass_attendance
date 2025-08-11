@@ -43,28 +43,41 @@ const detectVPN = async (ip) => {
   }
 };
 
-// Calculate distance between two GPS coordinates (Haversine formula)
+// Calculate distance between two GPS coordinates.
+// Uses both Haversine and Equirectangular approximations and returns the smaller, to be robust for short ranges.
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  // Convert degrees to radians
-  const lat1Rad = lat1 * Math.PI / 180;
-  const lon1Rad = lon1 * Math.PI / 180;
-  const lat2Rad = lat2 * Math.PI / 180;
-  const lon2Rad = lon2 * Math.PI / 180;
+  const toRad = (x) => (x * Math.PI) / 180;
 
-  // Haversine formula
-  const dLat = lat2Rad - lat1Rad;
-  const dLon = lon2Rad - lon1Rad;
-  
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1Rad) * Math.cos(lat2Rad) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  
-  // Earth's radius in meters
-  const R = 6371000;
-  
-  return R * c; // Distance in meters
+  // Coerce to numbers in case values are strings
+  const A = {
+    lat: Number(lat1),
+    lon: Number(lon1),
+  };
+  const B = {
+    lat: Number(lat2),
+    lon: Number(lon2),
+  };
+
+  // Basic sanity: if out of range, return NaN to be handled by caller
+  const inRange = (lat, lon) => Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+  if (!inRange(A.lat, A.lon) || !inRange(B.lat, B.lon)) return NaN;
+
+  const R = 6371000; // meters
+
+  // Haversine
+  const φ1 = toRad(A.lat);
+  const φ2 = toRad(B.lat);
+  const Δφ = toRad(B.lat - A.lat);
+  const Δλ = toRad(B.lon - A.lon);
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const haversine = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  // Equirectangular approximation (good for small distances)
+  const x = toRad(B.lon - A.lon) * Math.cos((φ1 + φ2) / 2);
+  const y = toRad(B.lat - A.lat);
+  const equirect = Math.sqrt(x * x + y * y) * R;
+
+  return Math.min(haversine, equirect);
 };
 
 // Validate student location against session location
@@ -80,20 +93,34 @@ const validateLocation = (sessionLocation, studentLocation, maxDistance = null) 
   console.log(`   Session Location: ${sessionLocation.latitude}, ${sessionLocation.longitude}`);
   console.log(`   Student Location: ${studentLocation.latitude}, ${studentLocation.longitude}`);
 
-  const distance = calculateDistance(
-    sessionLocation.latitude,
-    sessionLocation.longitude,
-    studentLocation.latitude,
-    studentLocation.longitude
+  // Coerce to numbers and guard
+  const sLat = Number(sessionLocation.latitude);
+  const sLon = Number(sessionLocation.longitude);
+  const uLat = Number(studentLocation.latitude);
+  const uLon = Number(studentLocation.longitude);
+
+  const distance = calculateDistance(sLat, sLon, uLat, uLon);
+  if (!isFinite(distance)) {
+    return { valid: false, error: 'Invalid coordinates received' };
+  }
+
+  // Apply device accuracy as a margin if available
+  const accuracy = Number(studentLocation.accuracy) || 0;
+  const effectiveDistance = Math.max(0, distance - accuracy);
+
+  console.log(
+    `   Calculated Distance: ${Math.round(distance)}m, Accuracy: ${Math.round(accuracy)}m, ` +
+    `Effective: ${Math.round(effectiveDistance)}m (Max allowed: ${maxAllowedDistance}m)`
   );
 
-  console.log(`   Calculated Distance: ${Math.round(distance)}m (Max allowed: ${maxAllowedDistance}m)`);
-
   return {
-    valid: distance <= maxAllowedDistance,
-    distance: Math.round(distance),
+    valid: effectiveDistance <= maxAllowedDistance,
+    distance: Math.round(effectiveDistance),
     maxDistance: maxAllowedDistance,
-    error: distance > maxAllowedDistance ? `Student is ${Math.round(distance)}m away from class location (max: ${maxAllowedDistance}m)` : null
+    error:
+      effectiveDistance > maxAllowedDistance
+        ? `Student is ${Math.round(effectiveDistance)}m away from class location (max: ${maxAllowedDistance}m)`
+        : null,
   };
 };
 
