@@ -43,8 +43,8 @@ const detectVPN = async (ip) => {
   }
 };
 
-// Calculate distance between two GPS coordinates.
-// Uses both Haversine and Equirectangular approximations and returns the smaller, to be robust for short ranges.
+// Calculate geodesic distance between two GPS coordinates using Vincenty's inverse formula
+// with fallback to Haversine/Equirectangular for robustness
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const toRad = (x) => (x * Math.PI) / 180;
 
@@ -61,19 +61,78 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   // Basic sanity: if out of range, return NaN to be handled by caller
   const inRange = (lat, lon) => Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
   if (!inRange(A.lat, A.lon) || !inRange(B.lat, B.lon)) return NaN;
+  
+  // Vincenty's inverse formula (WGS-84)
+  try {
+    const a = 6378137.0; // meters
+    const f = 1 / 298.257223563;
+    const b = (1 - f) * a;
 
-  const R = 6371000; // meters
+    const φ1 = toRad(A.lat);
+    const φ2 = toRad(B.lat);
+    const L = toRad(B.lon - A.lon);
 
-  // Haversine
-  const φ1 = toRad(A.lat);
-  const φ2 = toRad(B.lat);
+    const U1 = Math.atan((1 - f) * Math.tan(φ1));
+    const U2 = Math.atan((1 - f) * Math.tan(φ2));
+    const sinU1 = Math.sin(U1), cosU1 = Math.cos(U1);
+    const sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+
+    let λ = L;
+    let λPrev;
+    let iter = 0;
+    const maxIter = 100;
+    let sinλ, cosλ, sinσ, cosσ, σ, sinα, cos2α, cos2σm, C;
+
+    do {
+      sinλ = Math.sin(λ);
+      cosλ = Math.cos(λ);
+      const sinSqσ = (
+        (cosU2 * sinλ) * (cosU2 * sinλ) +
+        (cosU1 * sinU2 - sinU1 * cosU2 * cosλ) *
+          (cosU1 * sinU2 - sinU1 * cosU2 * cosλ)
+      );
+      sinσ = Math.sqrt(sinSqσ);
+      if (sinσ === 0) return 0; // coincident
+      cosσ = sinU1 * sinU2 + cosU1 * cosU2 * cosλ;
+      σ = Math.atan2(sinσ, cosσ);
+      sinα = (cosU1 * cosU2 * sinλ) / sinσ;
+      cos2α = 1 - sinα * sinα;
+      cos2σm = cos2α !== 0 ? cosσ - (2 * sinU1 * sinU2) / cos2α : 0; // equatorial line
+      C = (f / 16) * cos2α * (4 + f * (4 - 3 * cos2α));
+      λPrev = λ;
+      λ = L +
+        (1 - C) * f * sinα *
+          (σ + C * sinσ * (cos2σm + C * cosσ * (-1 + 2 * cos2σm * cos2σm)));
+    } while (Math.abs(λ - λPrev) > 1e-12 && ++iter < maxIter);
+
+    if (iter >= maxIter) throw new Error('Vincenty did not converge');
+
+    const uSq = (cos2α * (a * a - b * b)) / (b * b);
+    const Acoef = 1 + (uSq / 16384) * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
+    const Bcoef = (uSq / 1024) * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
+    const Δσ =
+      Bcoef *
+      sinσ *
+      (cos2σm +
+        (Bcoef / 4) *
+          (cosσ * (-1 + 2 * cos2σm * cos2σm) -
+            (Bcoef / 6) * cos2σm * (-3 + 4 * sinσ * sinσ) * (-3 + 4 * cos2σm * cos2σm)));
+    const s = b * Acoef * (σ - Δσ);
+    if (isFinite(s)) return s;
+  } catch (_) {
+    // fall through to simpler methods
+  }
+
+  // Fallbacks
+  const R = 6371000;
+  const φ1h = toRad(A.lat);
+  const φ2h = toRad(B.lat);
   const Δφ = toRad(B.lat - A.lat);
   const Δλ = toRad(B.lon - A.lon);
-  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-  const haversine = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const ah = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1h) * Math.cos(φ2h) * Math.sin(Δλ / 2) ** 2;
+  const haversine = 2 * R * Math.atan2(Math.sqrt(ah), Math.sqrt(1 - ah));
 
-  // Equirectangular approximation (good for small distances)
-  const x = toRad(B.lon - A.lon) * Math.cos((φ1 + φ2) / 2);
+  const x = toRad(B.lon - A.lon) * Math.cos((φ1h + φ2h) / 2);
   const y = toRad(B.lat - A.lat);
   const equirect = Math.sqrt(x * x + y * y) * R;
 
@@ -362,7 +421,14 @@ const getSessionInfo = async (req, res) => {
         sessionId: session.sessionId,
         batchName: session.batchName,
         date: session.date,
-        timeSlot: session.timeSlot
+        timeSlot: session.timeSlot,
+        location: session.location
+          ? {
+              latitude: Number(session.location.latitude),
+              longitude: Number(session.location.longitude),
+              accuracy: session.location.accuracy ?? null,
+            }
+          : null,
       }
     });
   } catch (error) {
