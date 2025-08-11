@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CS Attendance Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -41,7 +42,33 @@
             opacity: 0.9;
         }
 
-        .nav-tabs {
+        .dashboard-switcher {
+            margin-top: 20px;
+        }
+
+        .dashboard-switcher .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            margin: 0 10px;
+            backdrop-filter: blur(10px);
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .dashboard-switcher .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .tabs {
             display: flex;
             background: white;
             border-radius: 10px;
@@ -50,7 +77,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        .nav-tab {
+        .tab {
             flex: 1;
             padding: 15px 20px;
             text-align: center;
@@ -64,7 +91,7 @@
             color: #666;
         }
 
-        .nav-tab.active {
+        .tab.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             transform: translateY(-2px);
@@ -73,10 +100,6 @@
 
         .tab-content {
             display: none;
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
 
         .tab-content.active {
@@ -87,6 +110,23 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .form-group {
@@ -100,7 +140,7 @@
             color: #555;
         }
 
-        .form-group input, .form-group select, .form-group textarea {
+        .form-control {
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #e1e5e9;
@@ -109,7 +149,7 @@
             transition: border-color 0.3s ease;
         }
 
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+        .form-control:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -126,6 +166,13 @@
             text-decoration: none;
             display: inline-block;
             text-align: center;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
         }
 
         .btn-primary {
@@ -133,19 +180,14 @@
             color: white;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-
         .btn-success {
             background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
             color: white;
         }
 
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(86, 171, 47, 0.4);
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+            color: white;
         }
 
         .btn-danger {
@@ -153,77 +195,33 @@
             color: white;
         }
 
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
-        }
-
         .btn-secondary {
             background: #6c757d;
             color: white;
         }
 
-        .btn-secondary:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
-        }
-
-        .session-card {
-            background: white;
-            border-radius: 12px;
+        .session-info {
+            background: #f8f9fa;
+            border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-left: 4px solid #667eea;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .session-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-
-        .session-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .session-title {
-            font-size: 1.3rem;
-            font-weight: 600;
+        .session-info h3 {
             color: #333;
-        }
-
-        .session-status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-ended {
-            background: #f8d7da;
-            color: #721c24;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
         }
 
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            margin-bottom: 20px;
         }
 
         .info-item {
-            background: #f8f9fa;
-            padding: 12px;
+            background: white;
+            padding: 15px;
             border-radius: 8px;
             border-left: 3px solid #667eea;
         }
@@ -232,73 +230,42 @@
             color: #667eea;
             display: block;
             margin-bottom: 5px;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            border-color: #28a745;
-            color: #155724;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            border-color: #dc3545;
-            color: #721c24;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            border-color: #17a2b8;
-            color: #0c5460;
-        }
-
-        .database-switcher {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-
-        .database-switcher select {
-            padding: 8px 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
             font-size: 0.9rem;
+            text-transform: uppercase;
         }
 
-        .dashboard-switcher {
+        .info-item span, .info-item small {
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .qr-container {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .qr-container h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .qr-code {
+            max-width: 200px;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .session-actions {
             margin-top: 20px;
         }
 
-        .dashboard-switcher .btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            margin: 0 10px;
-            backdrop-filter: blur(10px);
-        }
-
-        .dashboard-switcher .btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-2px);
+        .session-status {
+            margin-top: 15px;
+            font-weight: 600;
         }
 
         .loading {
@@ -322,296 +289,371 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Mobile Responsiveness */
+        .session-filters {
+            margin-bottom: 20px;
+        }
+
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .filter-toggle input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .session-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .session-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .session-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .session-status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .session-status-badge.active {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .session-status-badge.ended {
+            background: #fdecea;
+            color: #b71c1c;
+            border: 1px solid #ffdad6;
+        }
+
+        .ended-session {
+            border-left: 3px solid #ff5252;
+        }
+
+        .active-session {
+            border-left: 3px solid #43a047;
+        }
+
+        /* Fix overflow/alignment for portrait mobile */
+        .session-header { flex-wrap: wrap; gap: 8px; }
+        .info-grid { width: 100%; }
+        .info-item { min-width: 0; }
+        .info-item strong { display: block; }
+        .info-item span, .info-item small { display: block; word-break: break-word; overflow-wrap: anywhere; }
+
         @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .nav-tabs {
-                flex-direction: column;
-            }
-
-            .nav-tab {
-                margin-bottom: 5px;
-            }
-
-            .tab-content {
-                padding: 20px;
-            }
-
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
-
-            .database-switcher {
-                position: static;
-                margin-bottom: 20px;
-                text-align: center;
-            }
+            .card, .session-info { max-width: 100%; }
+            .session-header h3 { flex: 1 1 100%; margin: 0 0 4px; }
+            .info-item { padding: 12px; }
+            .info-item strong { font-size: 0.95rem; line-height: 1.2; margin-bottom: 4px; }
+            .info-item span, .info-item small { font-size: 0.95rem; }
+            /* Group the action buttons under sessions cleanly on mobile */
+            .session-info > div[style*="margin-top: 15px"],
+            .session-actions { display: grid !important; grid-template-columns: 1fr; gap: 10px; }
+            .session-info > div[style*="margin-top: 15px"] .btn,
+            .session-actions .btn { width: 100%; }
+            /* Avoid any horizontal scroll */
+            body, html { overflow-x: hidden; }
         }
     </style>
 </head>
 <body>
-    <div class="database-switcher">
-        <label for="databaseSelect">Database:</label>
-        <select id="databaseSelect">
-            <option value="japclass">Japanese Class</option>
-            <option value="cs" selected>CS Database</option>
-        </select>
-    </div>
-
     <div class="container">
         <div class="header">
-            <h1>🎓 CS Attendance Dashboard</h1>
-            <p>Manage attendance for Computer Science batches</p>
+            <h1><i class="fas fa-qrcode"></i> CS Attendance Dashboard</h1>
+            <p>Teacher Dashboard - Create and manage CS attendance sessions</p>
             <div class="dashboard-switcher">
                 <a href="index.html" class="btn">
                     🏠 Back to Main Dashboard
                 </a>
                 <a href="japanese-dashboard.html" class="btn">
-                    🎌 Switch to Japanese Class Dashboard
+                    🇯🇵 Switch to Japanese Class Dashboard
                 </a>
             </div>
         </div>
 
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('create-session')">Create Session</button>
-            <button class="nav-tab" onclick="showTab('view-sessions')">View Sessions</button>
-            <button class="nav-tab" onclick="showTab('manage-batches')">Manage Batches</button>
-            <button class="nav-tab" onclick="showTab('manage-students')">Manage Students</button>
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('create')">
+                <i class="fas fa-plus"></i> Create Session
+            </div>
+            <div class="tab" onclick="showTab('sessions')">
+                <i class="fas fa-list"></i> View Sessions
+            </div>
         </div>
 
+        <!-- Student Attendance Link -->
         <div style="text-align: center; margin: 20px 0;">
-            <a href="cs-mark-attendance.html" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
-                📱 Student Attendance Page
+            <a href="cs-mark-attendance.html" class="btn btn-primary" style="text-decoration: none; display: inline-block; font-size: 1.1rem; padding: 15px 30px;">
+                📱 CS Student Attendance Page
             </a>
+            <p style="color: white; margin-top: 10px; opacity: 0.9;">
+                Students can use this page to mark their attendance by scanning QR codes
+            </p>
         </div>
 
         <!-- Create Session Tab -->
-        <div id="create-session" class="tab-content active">
-            <h2>📝 Create New Session</h2>
-            <form id="sessionForm">
-                <div class="form-group">
-                    <label for="batchSelect">Select Batch:</label>
-                    <select id="batchSelect" required>
-                        <option value="">Choose a batch...</option>
-                        <option value="CS2023">CS2023</option>
-                        <option value="CS2024">CS2024</option>
-                        <option value="CS2025">CS2025</option>
-                    </select>
-                </div>
+        <div id="create" class="tab-content active">
+            <div class="card">
+                <h2><i class="fas fa-calendar-plus"></i> Create New CS Attendance Session</h2>
+                <form id="sessionForm">
+                    <div class="form-group">
+                        <label for="batchSelect">Select Batch:</label>
+                        <select id="batchSelect" class="form-control" required>
+                            <option value="">Choose a batch...</option>
+                            <option value="CS2023">CS2023</option>
+                            <option value="CS2024">CS2024</option>
+                            <option value="CS2025">CS2025</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label for="sessionDate">Date:</label>
-                    <input type="date" id="sessionDate" required>
-                </div>
+                    <div class="form-group">
+                        <label for="sessionDate">Session Date:</label>
+                        <input type="date" id="sessionDate" class="form-control" required>
+                    </div>
 
-                <div class="form-group">
-                    <label for="timeSlot">Time Slot:</label>
-                    <select id="timeSlot" required>
-                        <option value="">Select time...</option>
-                        <option value="09:00-10:00">09:00-10:00</option>
-                        <option value="10:00-11:00">10:00-11:00</option>
-                        <option value="11:00-12:00">11:00-12:00</option>
-                        <option value="12:00-13:00">12:00-13:00</option>
-                        <option value="14:00-15:00">14:00-15:00</option>
-                        <option value="15:00-16:00">15:00-16:00</option>
-                        <option value="16:00-17:00">16:00-17:00</option>
-                    </select>
-                </div>
+                    <div class="form-group">
+                        <label for="timeSlot">Time Slot:</label>
+                        <select id="timeSlot" class="form-control" required>
+                            <option value="">Choose time slot...</option>
+                            <option value="9:00-10:00">9:00-10:00</option>
+                            <option value="10:00-11:00">10:00-11:00</option>
+                            <option value="11:00-12:00">11:00-12:00</option>
+                            <option value="12:00-13:00">12:00-13:00</option>
+                            <option value="14:00-15:00">14:00-15:00</option>
+                            <option value="15:00-16:00">15:00-16:00</option>
+                            <option value="16:00-17:00">16:00-17:00</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label for="notes">Notes (Optional):</label>
-                    <textarea id="notes" rows="3" placeholder="Add any additional notes..."></textarea>
-                </div>
+                    <div class="form-group">
+                        <label for="notes">Notes (Optional):</label>
+                        <textarea id="notes" class="form-control" rows="3" placeholder="Add any notes for this session..."></textarea>
+                    </div>
 
-                <div class="form-group">
-                    <label for="location">Location:</label>
-                    <input type="text" id="location" placeholder="Enter class location" required>
-                </div>
-
-                <button type="submit" class="btn btn-primary">📍 Get Current Location</button>
-                <button type="button" onclick="createSession()" class="btn btn-success">🚀 Create Session</button>
-            </form>
-
-            <div id="locationInfo" style="display: none;">
-                <h3>📍 Location Information</h3>
-                <div id="coordinates"></div>
+                    <button type="submit" class="btn btn-primary" id="createSessionBtn">
+                        <i class="fas fa-qrcode"></i> Create Session & Generate QR
+                    </button>
+                    <div id="locationStatus" style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                        <i class="fas fa-spinner fa-spin"></i> Checking location access...
+                    </div>
+                    <div id="locationOverride" style="margin-top: 10px; display: none;">
+                        <button type="button" class="btn btn-secondary" onclick="useDefaultLocation()" style="font-size: 0.8rem;">
+                            <i class="fas fa-map-marker-alt"></i> Use Default Location
+                        </button>
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Use this if GPS is not working
+                        </small>
+                    </div>
+                </form>
             </div>
 
             <div id="sessionResult" style="display: none;">
-                <h3>✅ Session Created Successfully!</h3>
-                <div id="sessionDetails"></div>
-                <div id="qrCode"></div>
+                <div class="card">
+                    <h2><i class="fas fa-check-circle"></i> Session Created Successfully!</h2>
+                    <div class="session-info">
+                        <h3>Session Details</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Session ID:</strong><br>
+                                <span id="sessionId"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Batch:</strong><br>
+                                <span id="batchName"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Date:</strong><br>
+                                <span id="sessionDate"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Time:</strong><br>
+                                <span id="sessionTime"></span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Location:</strong><br>
+                                <span id="sessionLocation">Capturing location...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="qr-container">
+                        <h3>QR Code for Students</h3>
+                        <img id="qrCode" class="qr-code" alt="QR Code">
+                        <p><strong>Students can scan this QR code to mark their attendance</strong></p>
+                        <div class="session-actions" style="margin-top: 20px;">
+                            <button id="endSessionBtn" class="btn btn-warning" onclick="endCurrentSession()">
+                                <i class="fas fa-stop-circle"></i> End Session
+                            </button>
+                            <p class="session-status" id="sessionStatus" style="margin-top: 10px; color: #28a745;">
+                                <i class="fas fa-check-circle"></i> Session is active
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- View Sessions Tab -->
-        <div id="view-sessions" class="tab-content">
-            <h2>📊 View Sessions</h2>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="showEndedSessions" onchange="loadSessions()">
-                    Show ended sessions
-                </label>
-            </div>
-            <div id="sessionsList">
-                <div class="loading">
-                    <div class="spinner"></div>
+        <div id="sessions" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-list"></i> Recent CS Sessions</h2>
+                <div class="session-filters" style="margin-bottom: 20px;">
+                    <label class="filter-toggle">
+                        <input type="checkbox" id="showInactiveSessions" onchange="toggleInactiveSessions()">
+                        Show ended sessions
+                    </label>
+                    <small style="color: #666; margin-left: 10px;">
+                        Ended sessions are kept for record-keeping but QR codes are disabled
+                    </small>
+                </div>
+                <div id="sessionsList" class="loading">
                     Loading sessions...
-                </div>
-            </div>
-        </div>
-
-        <!-- Manage Batches Tab -->
-        <div id="manage-batches" class="tab-content">
-            <h2>📚 Manage CS Batches</h2>
-            <div id="batchesList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    Loading batches...
-                </div>
-            </div>
-        </div>
-
-        <!-- Manage Students Tab -->
-        <div id="manage-students" class="tab-content">
-            <h2>👥 Manage CS Students</h2>
-            <div id="studentsList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    Loading students...
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script>
+        const API_BASE = 'https://japclass-backend.onrender.com/api/cs';
         let currentLocation = null;
-        let currentDatabase = 'cs';
+        let currentSessionId = null;
 
-        // Database switching
-        document.getElementById('databaseSelect').addEventListener('change', function() {
-            currentDatabase = this.value;
-            if (currentDatabase === 'japclass') {
-                window.location.href = 'index.html';
-            } else {
-                // Refresh CS dashboard data
-                loadSessions();
-                loadBatches();
-                loadStudents();
-            }
-        });
-
-        // Tab switching
+        // Tab functionality
         function showTab(tabName) {
             // Hide all tab contents
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(tab => tab.classList.remove('active'));
-
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
             // Remove active class from all tabs
-            const tabs = document.querySelectorAll('.nav-tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
-
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
             // Show selected tab content
             document.getElementById(tabName).classList.add('active');
-
+            
             // Add active class to clicked tab
             event.target.classList.add('active');
-
-            // Load data for the selected tab
-            switch(tabName) {
-                case 'view-sessions':
-                    loadSessions();
-                    break;
-                case 'manage-batches':
-                    loadBatches();
-                    break;
-                case 'manage-students':
-                    loadStudents();
-                    break;
+            
+            // Load data for sessions tab
+            if (tabName === 'sessions') {
+                loadSessions();
             }
         }
 
-        // Get current location
-        document.getElementById('sessionForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            getCurrentLocation();
+        // Check location access on page load
+        window.addEventListener('load', function() {
+            checkLocationAccess();
         });
 
-        function getCurrentLocation() {
-            if (!navigator.geolocation) {
-                alert('Geolocation is not supported by this browser.');
-                return;
+        function checkLocationAccess() {
+            if (navigator.geolocation) {
+                document.getElementById('locationStatus').innerHTML = 
+                    '<i class="fas fa-map-marker-alt"></i> Location access available. Click "Create Session" to capture location.';
+                document.getElementById('locationOverride').style.display = 'block';
+            } else {
+                document.getElementById('locationStatus').innerHTML = 
+                    '<i class="fas fa-exclamation-triangle"></i> Geolocation not supported. Using default location.';
+                document.getElementById('locationOverride').style.display = 'block';
             }
-
-            const locationInfo = document.getElementById('locationInfo');
-            const coordinates = document.getElementById('coordinates');
-            
-            coordinates.innerHTML = '<div class="loading"><div class="spinner"></div>Getting location...</div>';
-            locationInfo.style.display = 'block';
-
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    currentLocation = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy
-                    };
-
-                    coordinates.innerHTML = `
-                        <div class="alert alert-success">
-                            <strong>Location captured successfully!</strong><br>
-                            Latitude: ${currentLocation.latitude.toFixed(6)}<br>
-                            Longitude: ${currentLocation.longitude.toFixed(6)}<br>
-                            Accuracy: ${Math.round(currentLocation.accuracy)}m
-                        </div>
-                    `;
-                },
-                function(error) {
-                    coordinates.innerHTML = `
-                        <div class="alert alert-error">
-                            <strong>Error getting location:</strong> ${error.message}
-                        </div>
-                    `;
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
         }
 
-        // Create session
-        async function createSession() {
-            if (!currentLocation) {
-                alert('Please get your current location first!');
-                return;
-            }
+        function useDefaultLocation() {
+            // Use a default location (you can change these coordinates)
+            currentLocation = {
+                latitude: 13.0827,
+                longitude: 80.2707,
+                accuracy: 100
+            };
+            document.getElementById('locationStatus').innerHTML = 
+                '<i class="fas fa-map-marker-alt"></i> Using default location (Chennai, India)';
+            document.getElementById('locationOverride').style.display = 'none';
+        }
 
+        // Handle form submission
+        document.getElementById('sessionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!currentLocation) {
+                // Get current location first
+                if (navigator.geolocation) {
+                    document.getElementById('locationStatus').innerHTML = 
+                        '<i class="fas fa-spinner fa-spin"></i> Getting your location...';
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            currentLocation = {
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude,
+                                accuracy: position.coords.accuracy
+                            };
+                            document.getElementById('locationStatus').innerHTML = 
+                                '<i class="fas fa-check-circle"></i> Location captured! Creating session...';
+                            createSession();
+                        },
+                        function(error) {
+                            document.getElementById('locationStatus').innerHTML = 
+                                '<i class="fas fa-exclamation-triangle"></i> Location error: ' + error.message;
+                            document.getElementById('locationOverride').style.display = 'block';
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                } else {
+                    alert('Geolocation not supported. Please use default location.');
+                    useDefaultLocation();
+                    createSession();
+                }
+            } else {
+                createSession();
+            }
+        });
+
+        async function createSession() {
             const batchSelect = document.getElementById('batchSelect');
             const sessionDate = document.getElementById('sessionDate');
             const timeSlot = document.getElementById('timeSlot');
             const notes = document.getElementById('notes');
-            const location = document.getElementById('location');
 
-            if (!batchSelect.value || !sessionDate.value || !timeSlot.value || !location.value) {
+            if (!batchSelect.value || !sessionDate.value || !timeSlot.value) {
                 alert('Please fill in all required fields!');
+                return;
+            }
+
+            if (!currentLocation) {
+                alert('Please capture location first!');
                 return;
             }
 
@@ -620,13 +662,16 @@
                 date: sessionDate.value,
                 timeSlot: timeSlot.value,
                 notes: notes.value,
-                location: location.value,
+                location: 'CS Class Location',
                 latitude: currentLocation.latitude,
                 longitude: currentLocation.longitude
             };
 
             try {
-                const response = await fetch('https://japclass-backend.onrender.com/api/cs/sessions', {
+                document.getElementById('createSessionBtn').disabled = true;
+                document.getElementById('createSessionBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
+                const response = await fetch(`${API_BASE}/sessions`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -636,233 +681,160 @@
 
                 const result = await response.json();
 
-                if (response.ok) {
-                    showSessionResult(result.session);
+                if (result.success) {
+                    showSessionResult(result.data);
+                    currentSessionId = result.data.sessionId;
                     // Clear form
                     document.getElementById('sessionForm').reset();
-                    currentLocation = null;
-                    document.getElementById('locationInfo').style.display = 'none';
+                    document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
                 } else {
-                    alert('Error creating session: ' + result.error);
+                    alert('Error creating session: ' + result.message);
                 }
             } catch (error) {
                 alert('Error creating session: ' + error.message);
+            } finally {
+                document.getElementById('createSessionBtn').disabled = false;
+                document.getElementById('createSessionBtn').innerHTML = '<i class="fas fa-qrcode"></i> Create Session & Generate QR';
             }
         }
 
         function showSessionResult(sessionData) {
-            const resultDiv = document.getElementById('sessionResult');
-            const detailsDiv = document.getElementById('sessionDetails');
-            const qrDiv = document.getElementById('qrCode');
-
-            detailsDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <strong>Session ID:</strong> ${sessionData.sessionId}<br>
-                    <strong>Batch:</strong> ${sessionData.batchName}<br>
-                    <strong>Date:</strong> ${new Date(sessionData.date).toLocaleDateString()}<br>
-                    <strong>Time:</strong> ${sessionData.timeSlot}<br>
-                    <strong>Location:</strong> ${sessionData.location}<br>
-                    <strong>QR Code:</strong> Generated successfully
-                </div>
-            `;
-
-            // Show QR code if available
+            document.getElementById('sessionId').textContent = sessionData.sessionId;
+            document.getElementById('batchName').textContent = sessionData.batchName;
+            document.getElementById('sessionDate').textContent = new Date(sessionData.date).toLocaleDateString();
+            document.getElementById('sessionTime').textContent = sessionData.timeSlot;
+            document.getElementById('sessionLocation').textContent = `${sessionData.location} (${sessionData.coordinates.latitude.toFixed(6)}, ${sessionData.coordinates.longitude.toFixed(6)})`;
+            
             if (sessionData.qrCode) {
-                qrDiv.innerHTML = `
-                    <div style="text-align: center; margin-top: 20px;">
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: inline-block;">
-                            <h4>QR Code Generated!</h4>
-                            <img src="${sessionData.qrCode}" alt="QR Code" style="max-width: 200px;">
-                            <p><strong>Session ID:</strong> ${sessionData.sessionId}</p>
-                            <p><small>Students can scan this QR code to mark attendance</small></p>
-                        </div>
-                    </div>
-                `;
-            } else {
-                qrDiv.innerHTML = `
-                    <div style="text-align: center; margin-top: 20px;">
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: inline-block;">
-                            <h4>Session Created Successfully!</h4>
-                            <p><strong>Session ID:</strong> ${sessionData.sessionId}</p>
-                            <p><small>QR code generation in progress...</small></p>
-                        </div>
-                    </div>
-                `;
+                document.getElementById('qrCode').src = sessionData.qrCode;
             }
 
-            resultDiv.style.display = 'block';
+            document.getElementById('sessionResult').style.display = 'block';
+            document.getElementById('sessionResult').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // Load sessions
-        function loadSessions() {
+        async function endCurrentSession() {
+            if (!currentSessionId) {
+                alert('No active session to end!');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to end this session? Students will no longer be able to mark attendance.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/sessions/${currentSessionId}/end`, {
+                    method: 'PUT'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('sessionStatus').innerHTML = 
+                        '<i class="fas fa-stop-circle"></i> Session ended';
+                    document.getElementById('sessionStatus').style.color = '#dc3545';
+                    document.getElementById('endSessionBtn').style.display = 'none';
+                    alert('Session ended successfully!');
+                } else {
+                    alert('Error ending session: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error ending session: ' + error.message);
+            }
+        }
+
+        function toggleInactiveSessions() {
+            loadSessions();
+        }
+
+        async function loadSessions() {
             const sessionsList = document.getElementById('sessionsList');
-            const showEnded = document.getElementById('showEndedSessions').checked;
+            const showInactive = document.getElementById('showInactiveSessions').checked;
 
             sessionsList.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
-                    Loading sessions...
+                    Loading CS sessions...
                 </div>
             `;
 
-                    // Load real CS sessions from backend
-        try {
-            const response = await fetch('https://japclass-backend.onrender.com/api/cs/sessions');
-            const data = await response.json();
-            
-            if (data.success && data.sessions.length > 0) {
-                sessionsList.innerHTML = data.sessions.map(session => `
-                    <div class="session-card">
-                        <div class="session-header">
-                            <div class="session-title">${session.batchName} - ${session.location}</div>
-                            <span class="session-status-badge ${session.isActive ? 'status-active' : 'status-ended'}">
-                                ${session.isActive ? 'Active' : 'Ended'}
-                            </span>
+            try {
+                const response = await fetch(`${API_BASE}/sessions?showEnded=${showInactive}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    sessionsList.innerHTML = result.data.map(session => `
+                        <div class="session-card ${session.isActive ? 'active-session' : 'ended-session'}">
+                            <div class="session-header">
+                                <h3>${session.batchName} - ${session.location}</h3>
+                                <span class="session-status-badge ${session.isActive ? 'active' : 'ended'}">
+                                    ${session.isActive ? 'Active' : 'Ended'}
+                                </span>
+                            </div>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <strong>Session ID:</strong><br>
+                                    <span>${session.sessionId}</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>Date:</strong><br>
+                                    <span>${new Date(session.date).toLocaleDateString()}</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>Time:</strong><br>
+                                    <span>${session.timeSlot}</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>Students Present:</strong><br>
+                                    <span>${session.attendanceCount || 0} / ${session.totalStudents || 63}</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>Location:</strong><br>
+                                    <small>${session.coordinates.latitude.toFixed(6)}, ${session.coordinates.longitude.toFixed(6)}</small>
+                                </div>
+                            </div>
+                            <div class="session-actions" style="margin-top: 15px;">
+                                <button class="btn btn-primary" onclick="viewAttendance('${session.sessionId}')">
+                                    <i class="fas fa-users"></i> View Attendance
+                                </button>
+                                <button class="btn btn-success" onclick="exportExcel('${session.sessionId}')">
+                                    <i class="fas fa-file-excel"></i> Export Excel
+                                </button>
+                                ${session.isActive ? 
+                                    `<button class="btn btn-warning" onclick="endSession('${session.sessionId}')">
+                                        <i class="fas fa-stop-circle"></i> End Session
+                                    </button>` :
+                                    `<button class="btn btn-danger" onclick="deleteSession('${session.sessionId}')">
+                                        <i class="fas fa-trash"></i> Delete Session
+                                    </button>`
+                                }
+                            </div>
                         </div>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <strong>Session ID:</strong>
-                                ${session.sessionId}
-                            </div>
-                            <div class="info-item">
-                                <strong>Date:</strong>
-                                ${new Date(session.date).toLocaleDateString()}
-                            </div>
-                            <div class="info-item">
-                                <strong>Time:</strong>
-                                ${session.timeSlot}
-                            </div>
-                            <div class="info-item">
-                                <strong>Students:</strong>
-                                ${session.attendanceCount} present
-                            </div>
+                    `).join('');
+                } else {
+                    sessionsList.innerHTML = `
+                        <div class="alert alert-info">
+                            <strong>No CS sessions found.</strong><br>
+                            Create your first session using the "Create Session" tab above.
                         </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="viewAttendance('${session.sessionId}')">View Attendance</button>
-                            <button class="btn btn-success" onclick="exportExcel('${session.sessionId}')">Export Excel</button>
-                            ${session.isActive ? 
-                                `<button class="btn btn-danger" onclick="endSession('${session.sessionId}')">End Session</button>` :
-                                `<button class="btn btn-secondary" onclick="deleteSession('${session.sessionId}')">Delete Session</button>`
-                            }
-                        </div>
-                    </div>
-                `).join('');
-            } else {
+                    `;
+                }
+            } catch (error) {
                 sessionsList.innerHTML = `
-                    <div class="alert alert-info">
-                        <strong>No CS sessions found.</strong><br>
-                        Create your first session using the "Create Session" tab above.
+                    <div class="alert alert-error">
+                        <strong>Error loading sessions:</strong> ${error.message}<br>
+                        Please check your internet connection and try again.
                     </div>
                 `;
             }
-        } catch (error) {
-            sessionsList.innerHTML = `
-                <div class="alert alert-error">
-                    <strong>Error loading sessions:</strong> ${error.message}<br>
-                    Please check your internet connection and try again.
-                </div>
-            `;
-        }
         }
 
-        // Load batches
-        function loadBatches() {
-            const batchesList = document.getElementById('batchesList');
-            
-            batchesList.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    Loading batches...
-                </div>
-            `;
-
-            // For now, show placeholder data
-            setTimeout(() => {
-                batchesList.innerHTML = `
-                    <div class="alert alert-info">
-                        <strong>Note:</strong> Backend integration coming soon!<br>
-                        This will show actual CS batches from the database.
-                    </div>
-                    <div class="session-card">
-                        <div class="session-header">
-                            <div class="session-title">CS2023</div>
-                            <span class="session-status-badge status-active">Active</span>
-                        </div>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <strong>Students:</strong>
-                                63
-                            </div>
-                            <div class="info-item">
-                                <strong>Level:</strong>
-                                CS
-                            </div>
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-primary">View Students</button>
-                            <button class="btn btn-success">Edit Batch</button>
-                        </div>
-                    </div>
-                `;
-            }, 1000);
-        }
-
-        // Load students
-        function loadStudents() {
-            const studentsList = document.getElementById('studentsList');
-            
-            studentsList.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    Loading students...
-                </div>
-            `;
-
-            // For now, show placeholder data
-            setTimeout(() => {
-                studentsList.innerHTML = `
-                    <div class="alert alert-info">
-                        <strong>Note:</strong> Backend integration coming soon!<br>
-                        This will show actual CS students from the database.
-                    </div>
-                    <div class="session-card">
-                        <div class="session-header">
-                            <div class="session-title">CS2023 Students</div>
-                        </div>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <strong>Total Students:</strong>
-                                63
-                            </div>
-                            <div class="info-item">
-                                <strong>Sample Student:</strong>
-                                MADHURA MEENATCHI A (23CZ001)
-                            </div>
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-primary">View All Students</button>
-                            <button class="btn btn-success">Add Student</button>
-                            <button class="btn btn-secondary">Import Students</button>
-                        </div>
-                    </div>
-                `;
-            }, 1000);
-        }
-
-        // Set today's date as default
-        document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
-
-        // Load initial data
-        loadSessions();
-        loadBatches();
-        loadStudents();
-
-        // Session management functions
         async function endSession(sessionId) {
             if (!confirm('Are you sure you want to end this session?')) return;
             
             try {
-                const response = await fetch(`https://japclass-backend.onrender.com/api/cs/sessions/${sessionId}/end`, {
+                const response = await fetch(`${API_BASE}/sessions/${sessionId}/end`, {
                     method: 'PUT'
                 });
                 
@@ -881,7 +853,7 @@
             if (!confirm('Are you sure you want to permanently delete this session? This action cannot be undone.')) return;
             
             try {
-                const response = await fetch(`https://japclass-backend.onrender.com/api/cs/sessions/${sessionId}`, {
+                const response = await fetch(`${API_BASE}/sessions/${sessionId}`, {
                     method: 'DELETE'
                 });
                 
@@ -897,12 +869,18 @@
         }
 
         function viewAttendance(sessionId) {
-            alert(`Viewing attendance for session: ${sessionId}\n\nThis feature will show the attendance list for this session.`);
+            alert(`Viewing attendance for CS session: ${sessionId}\n\nThis feature will show the attendance list for this session.`);
         }
 
         function exportExcel(sessionId) {
-            alert(`Exporting Excel for session: ${sessionId}\n\nThis feature will download an Excel file with attendance data.`);
+            alert(`Exporting Excel for CS session: ${sessionId}\n\nThis feature will download an Excel file with attendance data.`);
         }
+
+        // Set today's date as default
+        document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+
+        // Load initial data
+        loadSessions();
     </script>
 </body>
 </html>
