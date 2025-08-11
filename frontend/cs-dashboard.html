@@ -394,6 +394,12 @@
             <button class="nav-tab" onclick="showTab('manage-students')">Manage Students</button>
         </div>
 
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="cs-mark-attendance.html" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
+                📱 Student Attendance Page
+            </a>
+        </div>
+
         <!-- Create Session Tab -->
         <div id="create-session" class="tab-content active">
             <h2>📝 Create New Session</h2>
@@ -592,7 +598,7 @@
         }
 
         // Create session
-        function createSession() {
+        async function createSession() {
             if (!currentLocation) {
                 alert('Please get your current location first!');
                 return;
@@ -615,11 +621,33 @@
                 timeSlot: timeSlot.value,
                 notes: notes.value,
                 location: location.value,
-                coordinates: currentLocation
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude
             };
 
-            // For now, show success message (we'll implement backend later)
-            showSessionResult(sessionData);
+            try {
+                const response = await fetch('https://japclass-backend.onrender.com/api/cs/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(sessionData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showSessionResult(result.session);
+                    // Clear form
+                    document.getElementById('sessionForm').reset();
+                    currentLocation = null;
+                    document.getElementById('locationInfo').style.display = 'none';
+                } else {
+                    alert('Error creating session: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error creating session: ' + error.message);
+            }
         }
 
         function showSessionResult(sessionData) {
@@ -629,23 +657,38 @@
 
             detailsDiv.innerHTML = `
                 <div class="alert alert-success">
+                    <strong>Session ID:</strong> ${sessionData.sessionId}<br>
                     <strong>Batch:</strong> ${sessionData.batchName}<br>
-                    <strong>Date:</strong> ${sessionData.date}<br>
+                    <strong>Date:</strong> ${new Date(sessionData.date).toLocaleDateString()}<br>
                     <strong>Time:</strong> ${sessionData.timeSlot}<br>
                     <strong>Location:</strong> ${sessionData.location}<br>
-                    <strong>Coordinates:</strong> ${sessionData.coordinates.latitude.toFixed(6)}, ${sessionData.coordinates.longitude.toFixed(6)}
+                    <strong>QR Code:</strong> Generated successfully
                 </div>
             `;
 
-            // Generate QR code (placeholder for now)
-            qrDiv.innerHTML = `
-                <div style="text-align: center; margin-top: 20px;">
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: inline-block;">
-                        <h4>QR Code will be generated here</h4>
-                        <p>Session ID: CS_${Date.now()}</p>
+            // Show QR code if available
+            if (sessionData.qrCode) {
+                qrDiv.innerHTML = `
+                    <div style="text-align: center; margin-top: 20px;">
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: inline-block;">
+                            <h4>QR Code Generated!</h4>
+                            <img src="${sessionData.qrCode}" alt="QR Code" style="max-width: 200px;">
+                            <p><strong>Session ID:</strong> ${sessionData.sessionId}</p>
+                            <p><small>Students can scan this QR code to mark attendance</small></p>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                qrDiv.innerHTML = `
+                    <div style="text-align: center; margin-top: 20px;">
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: inline-block;">
+                            <h4>Session Created Successfully!</h4>
+                            <p><strong>Session ID:</strong> ${sessionData.sessionId}</p>
+                            <p><small>QR code generation in progress...</small></p>
+                        </div>
+                    </div>
+                `;
+            }
 
             resultDiv.style.display = 'block';
         }
@@ -662,44 +705,64 @@
                 </div>
             `;
 
-            // For now, show placeholder data (we'll implement backend later)
-            setTimeout(() => {
-                sessionsList.innerHTML = `
-                    <div class="alert alert-info">
-                        <strong>Note:</strong> Backend integration coming soon!<br>
-                        This will show actual CS sessions from the database.
-                    </div>
+                    // Load real CS sessions from backend
+        try {
+            const response = await fetch('https://japclass-backend.onrender.com/api/cs/sessions');
+            const data = await response.json();
+            
+            if (data.success && data.sessions.length > 0) {
+                sessionsList.innerHTML = data.sessions.map(session => `
                     <div class="session-card">
                         <div class="session-header">
-                            <div class="session-title">CS2023 - Sample Session</div>
-                            <span class="session-status-badge status-active">Active</span>
+                            <div class="session-title">${session.batchName} - ${session.location}</div>
+                            <span class="session-status-badge ${session.isActive ? 'status-active' : 'status-ended'}">
+                                ${session.isActive ? 'Active' : 'Ended'}
+                            </span>
                         </div>
                         <div class="info-grid">
                             <div class="info-item">
                                 <strong>Session ID:</strong>
-                                CS_SESS_${Date.now()}
+                                ${session.sessionId}
                             </div>
                             <div class="info-item">
                                 <strong>Date:</strong>
-                                ${new Date().toLocaleDateString()}
+                                ${new Date(session.date).toLocaleDateString()}
                             </div>
                             <div class="info-item">
                                 <strong>Time:</strong>
-                                10:00-11:00
+                                ${session.timeSlot}
                             </div>
                             <div class="info-item">
                                 <strong>Students:</strong>
-                                0 present
+                                ${session.attendanceCount} present
                             </div>
                         </div>
                         <div class="action-buttons">
-                            <button class="btn btn-primary">View Attendance</button>
-                            <button class="btn btn-success">Export Excel</button>
-                            <button class="btn btn-danger">End Session</button>
+                            <button class="btn btn-primary" onclick="viewAttendance('${session.sessionId}')">View Attendance</button>
+                            <button class="btn btn-success" onclick="exportExcel('${session.sessionId}')">Export Excel</button>
+                            ${session.isActive ? 
+                                `<button class="btn btn-danger" onclick="endSession('${session.sessionId}')">End Session</button>` :
+                                `<button class="btn btn-secondary" onclick="deleteSession('${session.sessionId}')">Delete Session</button>`
+                            }
                         </div>
                     </div>
+                `).join('');
+            } else {
+                sessionsList.innerHTML = `
+                    <div class="alert alert-info">
+                        <strong>No CS sessions found.</strong><br>
+                        Create your first session using the "Create Session" tab above.
+                    </div>
                 `;
-            }, 1000);
+            }
+        } catch (error) {
+            sessionsList.innerHTML = `
+                <div class="alert alert-error">
+                    <strong>Error loading sessions:</strong> ${error.message}<br>
+                    Please check your internet connection and try again.
+                </div>
+            `;
+        }
         }
 
         // Load batches
@@ -793,6 +856,53 @@
         loadSessions();
         loadBatches();
         loadStudents();
+
+        // Session management functions
+        async function endSession(sessionId) {
+            if (!confirm('Are you sure you want to end this session?')) return;
+            
+            try {
+                const response = await fetch(`https://japclass-backend.onrender.com/api/cs/sessions/${sessionId}/end`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    alert('Session ended successfully!');
+                    loadSessions(); // Refresh the list
+                } else {
+                    alert('Error ending session');
+                }
+            } catch (error) {
+                alert('Error ending session: ' + error.message);
+            }
+        }
+
+        async function deleteSession(sessionId) {
+            if (!confirm('Are you sure you want to permanently delete this session? This action cannot be undone.')) return;
+            
+            try {
+                const response = await fetch(`https://japclass-backend.onrender.com/api/cs/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('Session deleted successfully!');
+                    loadSessions(); // Refresh the list
+                } else {
+                    alert('Error deleting session');
+                }
+            } catch (error) {
+                alert('Error deleting session: ' + error.message);
+            }
+        }
+
+        function viewAttendance(sessionId) {
+            alert(`Viewing attendance for session: ${sessionId}\n\nThis feature will show the attendance list for this session.`);
+        }
+
+        function exportExcel(sessionId) {
+            alert(`Exporting Excel for session: ${sessionId}\n\nThis feature will download an Excel file with attendance data.`);
+        }
     </script>
 </body>
 </html>

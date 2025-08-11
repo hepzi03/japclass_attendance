@@ -57,6 +57,9 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/session', sessionRoutes);
 app.use('/api/qr', require('./routes/qrAttendance'));
 
+// CS Routes
+app.use('/api/cs', require('./routes/csQrAttendance'));
+
 //app.use('/api/session', require('./routes/session'));
 
 
