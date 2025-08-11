@@ -141,8 +141,8 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 // Validate student location against session location
 const validateLocation = (sessionLocation, studentLocation, maxDistance = null) => {
-  // Use environment variable if not specified, default to 200m
-  const maxAllowedDistance = maxDistance || parseInt(process.env.MAX_ATTENDANCE_DISTANCE) || 200;
+  // Use environment variable if not specified, default to 300m for realistic indoor GPS drift
+  const maxAllowedDistance = maxDistance || parseInt(process.env.MAX_ATTENDANCE_DISTANCE) || 300;
   if (!sessionLocation || !studentLocation) {
     return { valid: false, error: 'Location data missing' };
   }

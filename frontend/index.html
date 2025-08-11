@@ -838,71 +838,43 @@
             });
         }
 
-        // Get current location with automatic permission handling
+        // Get current location with smoothing (average of 3 high-accuracy samples)
         function getCurrentLocation() {
             return new Promise(async (resolve, reject) => {
                 try {
-                    // First ensure we have permission
                     await ensureLocationPermission();
-                    
-                    // Try with high accuracy first
-                    const highAccuracyOptions = {
-                        enableHighAccuracy: true,
-                        timeout: 15000, // 15 seconds
-                        maximumAge: 0 // No cache for high accuracy
-                    };
+                    const samples = [];
+                    const takeSample = () => new Promise((res, rej) => {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => res({
+                                lat: pos.coords.latitude,
+                                lon: pos.coords.longitude,
+                                acc: pos.coords.accuracy
+                            }),
+                            (err) => rej(err),
+                            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+                        );
+                    });
 
-                    console.log('Starting high accuracy geolocation request...');
-                    
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            console.log('High accuracy geolocation success:', position);
-                            resolve({
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                                accuracy: position.coords.accuracy
-                            });
-                        },
-                        (error) => {
-                            console.log('High accuracy failed, trying low accuracy...');
-                            
-                            // Fallback to low accuracy
-                            const lowAccuracyOptions = {
-                                enableHighAccuracy: false,
-                                timeout: 10000, // 10 seconds
-                                maximumAge: 60000 // Allow 1 minute cache
-                            };
-                            
-                            navigator.geolocation.getCurrentPosition(
-                                (position) => {
-                                    console.log('Low accuracy geolocation success:', position);
-                                    resolve({
-                                        latitude: position.coords.latitude,
-                                        longitude: position.coords.longitude,
-                                        accuracy: position.coords.accuracy
-                                    });
-                                },
-                                (fallbackError) => {
-                                    console.error('Both high and low accuracy failed:', fallbackError);
-                                    switch (fallbackError.code) {
-                                        case fallbackError.PERMISSION_DENIED:
-                                            reject(new Error('Location access denied. Please allow location access to create a session.'));
-                                            break;
-                                        case fallbackError.POSITION_UNAVAILABLE:
-                                            reject(new Error('Location information unavailable. Please check your GPS/network connection and try again.'));
-                                            break;
-                                        case fallbackError.TIMEOUT:
-                                            reject(new Error('Location request timed out. Please try again.'));
-                                            break;
-                                        default:
-                                            reject(new Error('Unable to get location. Please check your GPS/network connection.'));
-                                    }
-                                },
-                                lowAccuracyOptions
-                            );
-                        },
-                        highAccuracyOptions
-                    );
+                    for (let i = 0; i < 3; i++) {
+                        try {
+                            const s = await takeSample();
+                            samples.push(s);
+                        } catch (e) {
+                            // ignore single sample failures, try next
+                        }
+                        if (i < 2) await new Promise(r => setTimeout(r, 700));
+                    }
+
+                    if (samples.length === 0) {
+                        return reject(new Error('Unable to get precise location.'));
+                    }
+
+                    const avgLat = samples.reduce((a, s) => a + s.lat, 0) / samples.length;
+                    const avgLon = samples.reduce((a, s) => a + s.lon, 0) / samples.length;
+                    const avgAcc = samples.reduce((a, s) => a + (s.acc || 0), 0) / samples.length;
+
+                    resolve({ latitude: avgLat, longitude: avgLon, accuracy: avgAcc });
                 } catch (error) {
                     reject(error);
                 }
