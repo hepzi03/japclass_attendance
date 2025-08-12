@@ -165,7 +165,7 @@
             margin: 15px 0;
             border-left: 4px solid #28a745;
         }
-
+        
         .debug-info {
             background: #f0f8ff;
             border-radius: 10px;
@@ -488,7 +488,7 @@
                     await ensureLocationPermission();
                     const samples = [];
                     const takeSample = () => new Promise((res, rej) => {
-                    navigator.geolocation.getCurrentPosition(
+                        navigator.geolocation.getCurrentPosition(
                             (pos) => res({
                                 lat: pos.coords.latitude,
                                 lon: pos.coords.longitude,
