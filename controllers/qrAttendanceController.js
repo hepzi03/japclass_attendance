@@ -229,103 +229,38 @@ const findStudentInFallback = (regNumber, batchName) => {
   return students.find(student => student.regNumber === regNumber);
 };
 
-// Get students for a specific batch
+// Get students for a specific batch (from primary database)
 const getBatchStudents = async (req, res) => {
-  let testConnection = null;
-  
   try {
     const { batchName } = req.params;
-    
     if (!batchName) {
       return res.status(400).json({ error: 'Batch name is required' });
     }
 
-    // Connect to test database for student data with timeout
-    const testUri = process.env.MONGODB_URI.replace('/japclass_attendance', '/test');
-    
-    testConnection = mongoose.createConnection(testUri, {
-      serverSelectionTimeoutMS: 5000, // 5 second timeout
-      socketTimeoutMS: 10000, // 10 second socket timeout
-      connectTimeoutMS: 10000, // 10 second connection timeout
-      maxPoolSize: 1 // Limit connections
-    });
-
-    // Wait for connection to be ready
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Database connection timeout'));
-      }, 10000);
-
-      testConnection.once('connected', () => {
-        clearTimeout(timeout);
-        resolve();
-      });
-
-      testConnection.once('error', (error) => {
-        clearTimeout(timeout);
-        reject(error);
-      });
-    });
-
-    const TestStudent = testConnection.model('Student', new mongoose.Schema({
-      name: String,
-      regNumber: String,
-      batchName: String,
-      level: String
-    }));
-
-    // Find students that belong to this batch
-    // The batchName parameter comes as "Batch 4 - N5" from the session
-    // We need to match students with batchName: "Batch 4" and level: "N5"
+    // "Batch 1 - N3" → batchNamePart: "Batch 1", levelPart: "N3"
     const [batchNamePart, levelPart] = batchName.split(' - ');
     
-    const students = await TestStudent.find({
+    const students = await Student.find({
       batchName: batchNamePart,
       level: levelPart
-    }).select('name regNumber').sort({ name: 1 }).maxTimeMS(5000); // 5 second query timeout
+    })
+      .select('name regNumber')
+      .sort({ name: 1 })
+      .lean();
 
     if (!students || students.length === 0) {
       return res.status(404).json({ error: 'No students found for this batch' });
     }
 
-    res.json({
-      success: true,
-      students: students.map(student => ({
-        name: student.name,
-        regNumber: student.regNumber
-      }))
-    });
+    res.json({ success: true, students });
   } catch (error) {
     console.error('Get batch students error:', error);
-    
-    // Try fallback data if database fails
+    // Fallback data if defined for the batch
     const fallbackData = fallbackStudents[req.params.batchName];
-    
             if (fallbackData && fallbackData.length > 0) {
-          res.json({
-            success: true,
-            students: fallbackData,
-            note: 'Using fallback data (database unavailable)'
-          });
-        } else {
-      // Provide more specific error messages
-      if (error.message.includes('timeout')) {
-        res.status(500).json({ error: 'Database connection timeout. Please try again.' });
-      } else if (error.message.includes('ECONNREFUSED')) {
-        res.status(500).json({ error: 'Cannot connect to database. Please check if the database is running.' });
-      } else {
-        res.status(500).json({ error: 'Failed to get batch students. Please try again.' });
-      }
+      return res.json({ success: true, students: fallbackData, note: 'Using fallback data' });
     }
-  } finally {
-    // Always close the connection
-    if (testConnection) {
-      try {
-        await testConnection.close();
-      } catch (closeError) {
-        console.error('Error closing test database connection:', closeError);
-      }
-    }
+    res.status(500).json({ error: 'Failed to get batch students. Please try again.' });
   }
 };
 
@@ -465,44 +400,8 @@ const markAttendance = async (req, res) => {
       });
     }
 
-    // Connect to test database for student data with timeout
-    let testConnection = null;
-    try {
-      const testUri = process.env.MONGODB_URI.replace('/japclass_attendance', '/test');
-      
-      testConnection = mongoose.createConnection(testUri, {
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 10000,
-        connectTimeoutMS: 10000,
-        maxPoolSize: 1
-      });
-
-      // Wait for connection to be ready
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Database connection timeout'));
-        }, 10000);
-
-        testConnection.once('connected', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-
-        testConnection.once('error', (error) => {
-          clearTimeout(timeout);
-          reject(error);
-        });
-      });
-
-      const TestStudent = testConnection.model('Student', new mongoose.Schema({
-        name: String,
-        regNumber: String,
-        batchName: String,
-        level: String
-      }));
-
-      // Find student by registration number
-      const student = await TestStudent.findOne({ regNumber }).maxTimeMS(5000);
+    // Find student by registration number from primary database
+    const student = await Student.findOne({ regNumber }).lean();
       if (!student) {
         return res.status(404).json({ error: 'Student not found with this registration number' });
       }
@@ -519,10 +418,6 @@ const markAttendance = async (req, res) => {
         name: student.name,
         regNumber: student.regNumber
       };
-
-      // Close the test database connection
-      await testConnection.close();
-      testConnection = null;
 
       // Continue with the rest of the function using studentData
       // VPN detection
@@ -603,138 +498,16 @@ const markAttendance = async (req, res) => {
           timestamp: attendance.timestamp
         }
       });
-    } catch (error) {
-      console.error('Mark attendance error:', error);
-      
-      // Try fallback data if database fails
-      if (error.message.includes('timeout') || error.message.includes('ECONNREFUSED')) {
-        const fallbackStudent = findStudentInFallback(regNumber, session.batchName);
-        
-        if (fallbackStudent) {
-          
-          // Continue with fallback student data
-          const studentData = {
-            _id: new mongoose.Types.ObjectId(), // Generate a temporary ID
-            name: fallbackStudent.name,
-            regNumber: fallbackStudent.regNumber
-          };
-
-          // VPN detection
-          const vpnInfo = await detectVPN(clientIP);
-          if (vpnInfo.isVpn) {
-            return res.status(403).json({ 
-              error: 'VPN detected. Disable VPN to continue.',
-              details: vpnInfo
-            });
-          }
-
-          // Check for existing attendance from same IP
-          const existingAttendanceFromIP = await Attendance.findOne({ 
-            sessionId: session_id, 
-            ip: clientIP 
-          });
-
-          if (existingAttendanceFromIP) {
-            // If same IP but different student, reject
-            if (existingAttendanceFromIP.regNumber !== regNumber) {
-              return res.status(403).json({ 
-                error: 'Attendance already marked from this IP with a different registration number' 
-              });
-            }
-            // If same student from same IP, allow but don't create duplicate
-            return res.json({ 
-              success: true, 
-              message: 'Attendance already marked for this student from this device',
-              attendance: existingAttendanceFromIP
-            });
-          }
-
-          // Check if this student has already marked attendance for this session (from any device/IP)
-          const existingStudentAttendance = await Attendance.findOne({ 
-            sessionId: session_id, 
-            regNumber: regNumber 
-          });
-
-          if (existingStudentAttendance) {
-            return res.status(403).json({ 
-              error: 'Attendance already marked for this student in this session',
-              attendance: existingStudentAttendance
-            });
-          }
-
-          // Get device information
-          const deviceInfo = getDeviceInfo(req.headers['user-agent']);
-
-          // Create attendance record
-          const attendance = new Attendance({
-            sessionId: session_id,
-            sessionObjectId: session._id,
-            studentId: studentData._id,
-            name: studentData.name,
-            regNumber: studentData.regNumber,
-            batchId: session.batchName,
-            date: session.date,
-            ip: clientIP,
-            deviceInfo,
-            isVpnDetected: vpnInfo.isVpn,
-            studentLocation: {
-              latitude: location.latitude,
-              longitude: location.longitude,
-              accuracy: location.accuracy
-            },
-            distanceFromClass: locationValidation.distance
-          });
-
-          await attendance.save();
-
-          res.json({
-            success: true,
-            message: 'Attendance marked successfully (using fallback data)',
-            attendance: {
-              name: attendance.name,
-              regNumber: attendance.regNumber,
-              batchId: attendance.batchId,
-              timestamp: attendance.timestamp
-            }
-          });
-          return;
-        }
-      }
-      
-      // Provide specific error messages
-      if (error.message.includes('timeout')) {
-        return res.status(500).json({ error: 'Database connection timeout. Please try again.' });
-      } else if (error.message.includes('ECONNREFUSED')) {
-        return res.status(500).json({ error: 'Cannot connect to database. Please check if the database is running.' });
-      } else if (error.code === 11000) {
-        return res.status(409).json({ error: 'Attendance already marked from this IP' });
-      } else {
-        return res.status(500).json({ error: 'Failed to mark attendance. Please try again.' });
-      }
-    } finally {
-      // Always close the connection
-      if (testConnection) {
-        try {
-          await testConnection.close();
-        } catch (closeError) {
-          console.error('Error closing test database connection:', closeError);
-        }
-      }
-    }
   } catch (error) {
     console.error('Mark attendance error:', error);
     
     // Provide specific error messages
-    if (error.message.includes('timeout')) {
-      return res.status(500).json({ error: 'Database connection timeout. Please try again.' });
-    } else if (error.message.includes('ECONNREFUSED')) {
-      return res.status(500).json({ error: 'Cannot connect to database. Please check if the database is running.' });
-    } else if (error.code === 11000) {
+    if (error.code === 11000) {
       return res.status(409).json({ error: 'Attendance already marked from this IP' });
-    } else {
-      return res.status(500).json({ error: 'Failed to mark attendance. Please try again.' });
     }
+    return res.status(500).json({ error: 'Failed to mark attendance. Please try again.' });
   }
+  
 };
 
 // Get attendance for a session
