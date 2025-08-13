@@ -599,47 +599,52 @@ const getAllSessions = async (req, res) => {
   }
 };
 
-// Export attendance as Excel
+// Export attendance as Excel (includes absentees)
 const exportAttendanceExcel = async (req, res) => {
   try {
     const { session_id } = req.params;
-
-    const attendance = await Attendance.find({ sessionId: session_id })
-      .sort({ timestamp: 1 });
-
-    if (attendance.length === 0) {
-      return res.status(404).json({ error: 'No attendance records found' });
-    }
 
     const session = await Session.findOne({ sessionId: session_id });
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Create Excel data
+    const attendance = await Attendance.find({ sessionId: session_id })
+      .sort({ timestamp: 1 })
+      .lean();
+
+    const attendanceByReg = new Map((attendance || []).map(r => [r.regNumber, r]));
+
+    const [batchNamePart, levelPart] = session.batchName.split(' - ');
+    const students = await Student.find({ batchName: batchNamePart, level: levelPart })
+      .select('name regNumber')
+      .sort({ name: 1 })
+      .lean();
+
+    // Create Excel data for full roster
     const excelData = [
-      ['Name', 'Registration Number', 'Batch', 'Date', 'Time', 'Device Info', 'Timestamp']
+      ['Name', 'Registration Number', 'Batch', 'Date', 'Time Slot', 'Status', 'Timestamp']
     ];
 
-    attendance.forEach(record => {
+    students.forEach(s => {
+      const rec = attendanceByReg.get(s.regNumber);
+      const status = rec ? 'Present' : 'Absent';
+      const ts = rec ? formatDateTime(rec.timestamp) : '';
       excelData.push([
-        record.name,
-        record.regNumber,
-        record.batchId,
-        session.date.toLocaleDateString(),
+        s.name,
+        s.regNumber,
+        session.batchName,
+        formatDate(session.date),
         session.timeSlot,
-        `${record.deviceInfo.browser} on ${record.deviceInfo.platform}`,
-        record.timestamp.toLocaleString()
+        status,
+        ts
       ]);
     });
 
-    // Create Excel file
     const XLSX = require('xlsx');
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.aoa_to_sheet(excelData);
-    
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
-    
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -652,22 +657,27 @@ const exportAttendanceExcel = async (req, res) => {
   }
 };
 
-// Export attendance as PDF
+// Export attendance as PDF (includes absentees)
 const exportAttendancePDF = async (req, res) => {
   try {
     const { session_id } = req.params;
-
-    const attendance = await Attendance.find({ sessionId: session_id })
-      .sort({ timestamp: 1 });
-
-    if (attendance.length === 0) {
-      return res.status(404).json({ error: 'No attendance records found' });
-    }
 
     const session = await Session.findOne({ sessionId: session_id });
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
+
+    const attendance = await Attendance.find({ sessionId: session_id })
+      .sort({ timestamp: 1 })
+      .lean();
+
+    const attendanceByReg = new Map((attendance || []).map(r => [r.regNumber, r.timestamp]));
+
+    const [batchNamePart, levelPart] = session.batchName.split(' - ');
+    const students = await Student.find({ batchName: batchNamePart, level: levelPart })
+      .select('name regNumber')
+      .sort({ name: 1 })
+      .lean();
 
     const PDFDocument = require('pdfkit');
     const doc = new PDFDocument();
@@ -687,7 +697,7 @@ const exportAttendancePDF = async (req, res) => {
 
     // Add table headers
     const headers = ['Name', 'Reg Number', 'Time'];
-    const colWidths = [200, 150, 120];
+    const colWidths = [200, 150, 150];
     let y = doc.y;
 
     headers.forEach((header, i) => {
@@ -697,17 +707,18 @@ const exportAttendancePDF = async (req, res) => {
 
     y += 25;
 
-    // Add attendance data
-    attendance.forEach((record, index) => {
+    // Add full roster (present + absent)
+    students.forEach((student, index) => {
       if (y > 700) {
         doc.addPage();
         y = 50;
       }
 
+      const ts = attendanceByReg.get(student.regNumber);
       const data = [
-        record.name,
-        record.regNumber,
-        formatTime(record.timestamp)
+        student.name,
+        student.regNumber,
+        ts ? formatTime(ts) : 'ABSENT'
       ];
 
       data.forEach((text, i) => {
