@@ -8,6 +8,38 @@ const axios = require('axios');
 // Simple user agent parser
 const rateLimit = require('express-rate-limit');
 
+// Preferred timezone for exports (defaults to Asia/Kolkata; override with TIMEZONE env)
+const DEFAULT_TIMEZONE = process.env.TIMEZONE || 'Asia/Kolkata';
+
+const formatDate = (date, tz = DEFAULT_TIMEZONE) =>
+  new Intl.DateTimeFormat('en-IN', {
+    timeZone: tz,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).format(new Date(date));
+
+const formatTime = (date, tz = DEFAULT_TIMEZONE) =>
+  new Intl.DateTimeFormat('en-IN', {
+    timeZone: tz,
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(new Date(date));
+
+const formatDateTime = (date, tz = DEFAULT_TIMEZONE) =>
+  new Intl.DateTimeFormat('en-IN', {
+    timeZone: tz,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(new Date(date));
+
 // Rate limiting for attendance marking
 const attendanceRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -649,7 +681,7 @@ const exportAttendancePDF = async (req, res) => {
     doc.fontSize(20).text('Attendance Report', { align: 'center' });
     doc.moveDown();
     doc.fontSize(12).text(`Batch: ${session.batchName}`, { align: 'center' });
-    doc.fontSize(12).text(`Date: ${session.date.toLocaleDateString()}`, { align: 'center' });
+    doc.fontSize(12).text(`Date: ${formatDate(session.date)}`, { align: 'center' });
     doc.fontSize(12).text(`Time: ${session.timeSlot}`, { align: 'center' });
     doc.moveDown();
 
@@ -675,7 +707,7 @@ const exportAttendancePDF = async (req, res) => {
       const data = [
         record.name,
         record.regNumber,
-        record.timestamp.toLocaleTimeString()
+        formatTime(record.timestamp)
       ];
 
       data.forEach((text, i) => {
